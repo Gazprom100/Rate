@@ -11,6 +11,7 @@ create table if not exists tokens (
   crr numeric not null,
   wallets_count integer not null,
   delegation_percentage numeric not null,
+  market_cap numeric not null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
@@ -24,12 +25,19 @@ create table if not exists token_history (
   crr numeric not null,
   wallets_count integer not null,
   delegation_percentage numeric not null,
+  market_cap numeric not null,
   timestamp timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
 -- Create indexes
 create index if not exists idx_token_history_token_id on token_history(token_id);
 create index if not exists idx_token_history_timestamp on token_history(timestamp);
+create index if not exists idx_tokens_market_cap on tokens(market_cap desc);
+create index if not exists idx_tokens_price on tokens(price desc);
+create index if not exists idx_tokens_reserve on tokens(reserve desc);
+create index if not exists idx_tokens_crr on tokens(crr desc);
+create index if not exists idx_tokens_wallets_count on tokens(wallets_count desc);
+create index if not exists idx_tokens_delegation_percentage on tokens(delegation_percentage desc);
 
 -- Create function to update updated_at timestamp
 create or replace function update_updated_at_column()
