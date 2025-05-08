@@ -1,17 +1,24 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { fetchTokens } from '@/utils/decimalApi';
+import { headers } from 'next/headers';
 
 export const runtime = 'edge';
 
 export async function GET() {
   try {
-    // Fetch latest token data
+    // Проверка авторизации
+    const authHeader = headers().get('authorization');
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET_KEY}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Получение данных токенов
     const tokens = await fetchTokens();
 
-    // Update tokens in Supabase
+    // Обновление данных в базе
     for (const token of tokens) {
-      // Update token data
+      // Обновление данных токена
       const { error: tokenError } = await supabaseAdmin
         .from('tokens')
         .upsert({
@@ -27,11 +34,11 @@ export async function GET() {
         });
 
       if (tokenError) {
-        console.error(`Error updating token ${token.symbol}:`, tokenError);
+        console.error(`Ошибка обновления токена ${token.symbol}:`, tokenError);
         continue;
       }
 
-      // Insert historical data
+      // Добавление исторических данных
       const { error: historyError } = await supabaseAdmin
         .from('token_history')
         .insert({
@@ -45,15 +52,15 @@ export async function GET() {
         });
 
       if (historyError) {
-        console.error(`Error inserting history for token ${token.symbol}:`, historyError);
+        console.error(`Ошибка добавления истории для токена ${token.symbol}:`, historyError);
       }
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error updating tokens:', error);
+    console.error('Ошибка обновления токенов:', error);
     return NextResponse.json(
-      { error: 'Failed to update tokens' },
+      { error: 'Ошибка обновления токенов' },
       { status: 500 }
     );
   }
