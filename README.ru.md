@@ -103,6 +103,14 @@ create index if not exists idx_token_history_timestamp on token_history(timestam
    - Build Command: `npm install && npm run build`
    - Start Command: `npm start`
    - Environment Variables: Добавьте все переменные из `.env.local`
+   - Node Version: 18.x (или выше)
+
+4. Дополнительные настройки:
+   - Auto-Deploy: Включено
+   - Branch: main (или ваша основная ветка)
+   - Health Check Path: /api/health
+
+5. После настройки нажмите "Create Web Service"
 
 ## Безопасность
 
