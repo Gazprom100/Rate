@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 
+// Принудительно указываем, что это динамический маршрут
+export const dynamic = 'force-dynamic';
+
 // Не используем Edge Runtime для этого обработчика
 export const runtime = 'nodejs';
 export const preferredRegion = 'auto';

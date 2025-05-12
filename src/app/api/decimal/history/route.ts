@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Принудительно указываем, что это динамический маршрут
+export const dynamic = 'force-dynamic';
+
 // Переключаемся на стандартный рантайм
 // export const runtime = 'edge';
 
