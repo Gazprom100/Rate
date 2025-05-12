@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     
     // Получаем параметры пагинации из запроса
     const { searchParams } = new URL(request.url);
-    const limit = searchParams.get('limit') || '10';
+    const limit = searchParams.get('limit') || '100'; // Увеличиваем лимит по умолчанию до 100
     const offset = searchParams.get('offset') || '0';
     
     console.log(`Fetching coins with limit=${limit}, offset=${offset}`);
@@ -79,7 +79,9 @@ export async function GET(request: NextRequest) {
           console.log('Sample coin data before conversion:', {
             symbol: coinsData[0].symbol,
             price: coinsData[0].price,
-            reserve: coinsData[0].reserve
+            reserve: coinsData[0].reserve,
+            current_supply: coinsData[0].current_supply || coinsData[0].volume,
+            max_supply: coinsData[0].max_supply || coinsData[0].limit_volume
           });
         }
         
@@ -89,14 +91,28 @@ export async function GET(request: NextRequest) {
           const reserve = convertFromDecimals(coin.reserve || 0);
           
           // Преобразуем данные о supply, если они есть
-          const currentSupply = convertFromDecimals(coin.current_supply || coin.volume || 0);
-          const maxSupply = convertFromDecimals(coin.max_supply || coin.limit_volume || 0);
+          const rawCurrentSupply = coin.current_supply || coin.volume || '0';
+          const rawMaxSupply = coin.max_supply || coin.limit_volume || '0';
+          
+          console.log(`Token ${coin.symbol} supply data:`, {
+            rawCurrentSupply,
+            rawMaxSupply
+          });
+          
+          const currentSupply = convertFromDecimals(rawCurrentSupply);
+          const maxSupply = convertFromDecimals(rawMaxSupply);
           
           // Рассчитываем процент текущего supply от максимального
           let supplyPercentage = 0;
           if (maxSupply > 0) {
             supplyPercentage = (currentSupply / maxSupply) * 100;
           }
+          
+          // Используем альтернативный метод получения значения supply, если значения нулевые
+          // Некоторые токены могут иметь данные в другом формате
+          const finalCurrentSupply = currentSupply || 0;
+          const finalMaxSupply = maxSupply || 0;
+          const finalSupplyPercentage = supplyPercentage || 0;
           
           return {
             id: coin.symbol,
@@ -108,14 +124,14 @@ export async function GET(request: NextRequest) {
             wallets_count: parseInt(coin.wallets_count || 0),
             delegation_percentage: parseFloat(coin.delegation_percentage || 0),
             // Добавляем информацию о supply
-            current_supply: currentSupply,
-            max_supply: maxSupply,
-            supply_percentage: supplyPercentage,
+            current_supply: finalCurrentSupply,
+            max_supply: finalMaxSupply,
+            supply_percentage: finalSupplyPercentage,
             // Оригинальные значения для отладки
             raw_price: coin.price,
             raw_reserve: coin.reserve,
-            raw_current_supply: coin.current_supply || coin.volume,
-            raw_max_supply: coin.max_supply || coin.limit_volume
+            raw_current_supply: rawCurrentSupply,
+            raw_max_supply: rawMaxSupply
           };
         });
         
@@ -126,7 +142,12 @@ export async function GET(request: NextRequest) {
             price: normalizedCoins[0].price,
             raw_price: normalizedCoins[0].raw_price,
             reserve: normalizedCoins[0].reserve,
-            raw_reserve: normalizedCoins[0].raw_reserve
+            raw_reserve: normalizedCoins[0].raw_reserve,
+            current_supply: normalizedCoins[0].current_supply,
+            max_supply: normalizedCoins[0].max_supply,
+            supply_percentage: normalizedCoins[0].supply_percentage,
+            raw_current_supply: normalizedCoins[0].raw_current_supply,
+            raw_max_supply: normalizedCoins[0].raw_max_supply
           });
         }
         
