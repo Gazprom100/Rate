@@ -10,6 +10,9 @@ import { ReservesCard } from '@/components/ReservesCard';
 import { TopTokensCard } from '@/components/TopTokensCard';
 import { TokenPieChart } from '@/components/TokenPieChart';
 import { TokenBarChart } from '@/components/TokenBarChart';
+import { StakingCard } from '@/components/StakingCard';
+import { Pagination } from '@/components/Pagination';
+import { SearchFilter } from '@/components/SearchFilter';
 
 const timeFrames = [
   { label: '24H', value: '24h' },
@@ -30,7 +33,10 @@ const metrics = [
   { label: 'Капитализация', value: 'market_cap' },
   { label: 'Резерв DEL', value: 'reserve' },
   { label: 'Делегировано %', value: 'delegation_percentage' },
+  { label: 'Выпуск от максимума %', value: 'supply_percentage' },
 ];
+
+const TOKENS_PER_PAGE = 20;
 
 export default function Home() {
   const [tokens, setTokens] = useState<Token[]>([]);
@@ -44,6 +50,8 @@ export default function Home() {
   const [selectedMetric, setSelectedMetric] = useState('price');
   const [darkMode, setDarkMode] = useState(false);
   const [priceChanges, setPriceChanges] = useState<Record<string, Record<string, number>>>({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     const loadTokens = async () => {
@@ -55,8 +63,9 @@ export default function Home() {
         setDebugInfo(prev => `${prev}\nУспешно загружено ${data.length} токенов`);
         setTokens(data);
         
-        // Загрузка исторических данных для первых 10 токенов
-        const top10Tokens = data.slice(0, 10);
+        // Загружаем исторические данные только для топ-10 токенов по капитализации для карточек
+        const sortedByMarketCap = [...data].sort((a, b) => (b.market_cap || 0) - (a.market_cap || 0));
+        const top10Tokens = sortedByMarketCap.slice(0, 10);
         const changesData: Record<string, Record<string, number>> = {};
         
         for (const token of top10Tokens) {
@@ -104,6 +113,8 @@ export default function Home() {
       setSortBy(field);
       setSortOrder('desc');
     }
+    // При изменении сортировки возвращаемся на первую страницу
+    setCurrentPage(1);
   };
 
   const sortedTokens = [...tokens].sort((a, b) => {
@@ -113,6 +124,38 @@ export default function Home() {
       ? aValue > bValue ? 1 : -1
       : aValue < bValue ? 1 : -1;
   });
+
+  // Выбираем топ-5 токенов по капитализации для карточек
+  const topTokensByMarketCap = [...tokens]
+    .sort((a, b) => (b.market_cap || 0) - (a.market_cap || 0))
+    .slice(0, 5);
+
+  // Вычисляем общие метрики для отображения в карточках
+  const getTotalReserve = () => tokens.reduce((sum, token) => sum + token.reserve, 0);
+  const getTotalDelegated = () => tokens.reduce((sum, token) => sum + (token.delegation_percentage || 0) * token.reserve / 100, 0);
+
+  // Filter tokens based on search term
+  const filteredTokens = sortedTokens.filter(token => 
+    searchTerm === '' || 
+    token.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    token.symbol.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Recalculate pagination for filtered tokens
+  const totalPages = Math.ceil(filteredTokens.length / TOKENS_PER_PAGE);
+  const startIndex = (currentPage - 1) * TOKENS_PER_PAGE;
+  const tokensForCurrentPage = filteredTokens.slice(startIndex, startIndex + TOKENS_PER_PAGE);
+
+  // Reset to first page when search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Прокручиваем страницу к таблице
+    window.scrollTo({ top: document.getElementById('token-table')?.offsetTop || 0, behavior: 'smooth' });
+  };
 
   if (loading && tokens.length === 0) {
     return (
@@ -157,6 +200,9 @@ export default function Home() {
             Decimal Token Metrics
           </h1>
           <div className="flex items-center space-x-4">
+            <div className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              {tokens.length} токенов
+            </div>
             <button
               onClick={() => setDarkMode(!darkMode)}
               className={`p-2 rounded-full ${darkMode ? 'bg-gray-800 text-yellow-400' : 'bg-gray-200 text-gray-700'}`}
@@ -185,23 +231,27 @@ export default function Home() {
         </header>
 
         {/* Метрики и карточки */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
           <PriceChangeCard 
-            tokens={sortedTokens.slice(0, 5)} 
+            tokens={topTokensByMarketCap} 
             timeFrame={selectedTimeFrame} 
             priceChanges={priceChanges}
             darkMode={darkMode}
           />
           <DelegationCard 
-            tokens={sortedTokens} 
+            tokens={tokens} 
+            darkMode={darkMode}
+          />
+          <StakingCard 
+            tokens={tokens} 
             darkMode={darkMode}
           />
           <ReservesCard 
-            tokens={sortedTokens} 
+            tokens={tokens} 
             darkMode={darkMode}
           />
           <TopTokensCard 
-            tokens={sortedTokens.slice(0, 5)} 
+            tokens={topTokensByMarketCap} 
             darkMode={darkMode}
           />
         </div>
@@ -253,95 +303,75 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="h-80">
+          <div className="mt-4">
             {chartType === 'line' && (
-              <TokenChart
-                data={{
-                  labels: sortedTokens.slice(0, 10).map((t) => t.symbol),
-                  datasets: [
-                    {
-                      label: metrics.find(m => m.value === selectedMetric)?.label || '',
-                      data: sortedTokens.slice(0, 10).map((t) => t[selectedMetric as keyof Token] as number),
-                      borderColor: 'rgb(59, 130, 246)',
-                      backgroundColor: 'rgba(59, 130, 246, 0.5)',
-                    },
-                  ],
-                }}
-                title={`${metrics.find(m => m.value === selectedMetric)?.label || ''} - Top 10 Tokens`}
+              <TokenChart 
+                tokens={topTokensByMarketCap} 
+                timeFrame={selectedTimeFrame} 
+                metric={selectedMetric as keyof Token} 
                 darkMode={darkMode}
               />
             )}
             {chartType === 'bar' && (
-              <TokenBarChart
-                data={{
-                  labels: sortedTokens.slice(0, 10).map((t) => t.symbol),
-                  datasets: [
-                    {
-                      label: metrics.find(m => m.value === selectedMetric)?.label || '',
-                      data: sortedTokens.slice(0, 10).map((t) => t[selectedMetric as keyof Token] as number),
-                      backgroundColor: [
-                        'rgba(255, 99, 132, 0.7)',
-                        'rgba(54, 162, 235, 0.7)',
-                        'rgba(255, 206, 86, 0.7)',
-                        'rgba(75, 192, 192, 0.7)',
-                        'rgba(153, 102, 255, 0.7)',
-                        'rgba(255, 159, 64, 0.7)',
-                        'rgba(199, 199, 199, 0.7)',
-                        'rgba(83, 102, 255, 0.7)',
-                        'rgba(40, 159, 64, 0.7)',
-                        'rgba(210, 99, 132, 0.7)',
-                      ],
-                    },
-                  ],
-                }}
-                title={`${metrics.find(m => m.value === selectedMetric)?.label || ''} - Top 10 Tokens`}
+              <TokenBarChart 
+                tokens={topTokensByMarketCap} 
+                metric={selectedMetric as keyof Token} 
                 darkMode={darkMode}
               />
             )}
             {chartType === 'pie' && (
-              <TokenPieChart
-                data={{
-                  labels: sortedTokens.slice(0, 10).map((t) => t.symbol),
-                  datasets: [
-                    {
-                      data: sortedTokens.slice(0, 10).map((t) => t[selectedMetric as keyof Token] as number),
-                      backgroundColor: [
-                        'rgba(255, 99, 132, 0.7)',
-                        'rgba(54, 162, 235, 0.7)',
-                        'rgba(255, 206, 86, 0.7)',
-                        'rgba(75, 192, 192, 0.7)',
-                        'rgba(153, 102, 255, 0.7)',
-                        'rgba(255, 159, 64, 0.7)',
-                        'rgba(199, 199, 199, 0.7)',
-                        'rgba(83, 102, 255, 0.7)',
-                        'rgba(40, 159, 64, 0.7)',
-                        'rgba(210, 99, 132, 0.7)',
-                      ],
-                    },
-                  ],
-                }}
-                title={`${metrics.find(m => m.value === selectedMetric)?.label || ''} - Top 10 Tokens`}
+              <TokenPieChart 
+                tokens={topTokensByMarketCap} 
+                metric={selectedMetric as keyof Token} 
                 darkMode={darkMode}
               />
             )}
           </div>
         </div>
 
-        <div className={`bg-${darkMode ? 'gray-800' : 'white'} shadow rounded-lg overflow-hidden`}>
-          <div className="p-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}">
+        {/* Таблица токенов с поиском и пагинацией */}
+        <div id="token-table" className={`bg-${darkMode ? 'gray-800' : 'white'} shadow rounded-lg p-6`}>
+          <div className="flex justify-between items-center mb-4">
             <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-              Таблица токенов
+              Все токены Decimal
             </h2>
+            <div className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              {filteredTokens.length} из {tokens.length} токенов
+            </div>
           </div>
-          <TokenTable
-            tokens={sortedTokens}
-            timeFrame={selectedTimeFrame}
-            sortBy={sortBy}
-            sortOrder={sortOrder}
-            onSort={handleSort}
+
+          <SearchFilter 
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
             darkMode={darkMode}
-            priceChanges={priceChanges}
           />
+
+          {filteredTokens.length === 0 ? (
+            <div className={`text-center py-8 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              Токены не найдены. Попробуйте изменить поисковый запрос.
+            </div>
+          ) : (
+            <>
+              <TokenTable 
+                tokens={tokensForCurrentPage} 
+                timeFrame={selectedTimeFrame}
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSort={handleSort}
+                darkMode={darkMode}
+                priceChanges={priceChanges}
+              />
+
+              {totalPages > 1 && (
+                <Pagination 
+                  currentPage={currentPage} 
+                  totalPages={totalPages} 
+                  onPageChange={handlePageChange} 
+                  darkMode={darkMode}
+                />
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>

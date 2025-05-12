@@ -15,6 +15,16 @@ export function TopTokensCard({ tokens, darkMode = false }: TopTokensCardProps) 
     return num.toFixed(2);
   };
 
+  const formatPrice = (price: number) => {
+    // Для цен используем больше десятичных знаков
+    return `${price.toFixed(8)} DEL`;
+  };
+
+  const formatMarketCap = (marketCap: number) => {
+    // Показываем капитализацию в DEL
+    return `${formatNumber(marketCap)} DEL`;
+  };
+
   // Пересчитываем капитализацию для каждого токена
   const tokensWithMarketCap = tokens.map(token => ({
     ...token,
@@ -52,9 +62,9 @@ export function TopTokensCard({ tokens, darkMode = false }: TopTokensCardProps) 
               </div>
             </div>
             <div className={`text-right ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              <div className="font-medium">${formatNumber(token.market_cap || 0)}</div>
+              <div className="font-medium">{formatMarketCap(token.market_cap || 0)}</div>
               <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                ${token.price.toFixed(6)}
+                {formatPrice(token.price)}
               </div>
             </div>
           </div>
@@ -63,7 +73,7 @@ export function TopTokensCard({ tokens, darkMode = false }: TopTokensCardProps) 
       
       <div className={`mt-4 pt-4 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
         <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-          <p>Капитализация = цена × резерв</p>
+          <p>Капитализация = цена × резерв в DEL</p>
         </div>
       </div>
     </div>

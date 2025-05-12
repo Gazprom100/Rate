@@ -12,6 +12,9 @@ export interface Token {
   market_cap?: number;
   raw_price?: string; // Добавляем оригинальные (неконвертированные) значения для отладки
   raw_reserve?: string;
+  current_supply?: number; // Текущий выпуск токенов
+  max_supply?: number;     // Максимальный выпуск токенов
+  supply_percentage?: number; // Процент выпущенных токенов от максимума
 }
 
 // Функция для вычисления рыночной капитализации

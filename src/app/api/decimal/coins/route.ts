@@ -88,6 +88,16 @@ export async function GET(request: NextRequest) {
           const price = convertFromDecimals(coin.price || 0);
           const reserve = convertFromDecimals(coin.reserve || 0);
           
+          // Преобразуем данные о supply, если они есть
+          const currentSupply = convertFromDecimals(coin.current_supply || coin.volume || 0);
+          const maxSupply = convertFromDecimals(coin.max_supply || coin.limit_volume || 0);
+          
+          // Рассчитываем процент текущего supply от максимального
+          let supplyPercentage = 0;
+          if (maxSupply > 0) {
+            supplyPercentage = (currentSupply / maxSupply) * 100;
+          }
+          
           return {
             id: coin.symbol,
             symbol: coin.symbol,
@@ -97,9 +107,15 @@ export async function GET(request: NextRequest) {
             crr: parseFloat(coin.crr || 0),
             wallets_count: parseInt(coin.wallets_count || 0),
             delegation_percentage: parseFloat(coin.delegation_percentage || 0),
+            // Добавляем информацию о supply
+            current_supply: currentSupply,
+            max_supply: maxSupply,
+            supply_percentage: supplyPercentage,
             // Оригинальные значения для отладки
             raw_price: coin.price,
-            raw_reserve: coin.reserve
+            raw_reserve: coin.reserve,
+            raw_current_supply: coin.current_supply || coin.volume,
+            raw_max_supply: coin.max_supply || coin.limit_volume
           };
         });
         

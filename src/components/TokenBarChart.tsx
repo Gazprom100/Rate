@@ -9,6 +9,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import { Token } from '@/utils/decimalApi';
 
 ChartJS.register(
   CategoryScale,
@@ -20,19 +21,41 @@ ChartJS.register(
 );
 
 interface TokenBarChartProps {
-  data: {
-    labels: string[];
-    datasets: {
-      label: string;
-      data: number[];
-      backgroundColor: string[];
-    }[];
-  };
-  title: string;
+  tokens: Token[];
+  metric: keyof Token;
   darkMode?: boolean;
 }
 
-export function TokenBarChart({ data, title, darkMode = false }: TokenBarChartProps) {
+export function TokenBarChart({ tokens, metric, darkMode = false }: TokenBarChartProps) {
+  // Filter out tokens that don't have the selected metric
+  const validTokens = tokens.filter(token => token[metric] !== undefined);
+  
+  // Background colors for bars
+  const backgroundColors = [
+    'rgba(255, 99, 132, 0.7)',
+    'rgba(54, 162, 235, 0.7)',
+    'rgba(255, 206, 86, 0.7)',
+    'rgba(75, 192, 192, 0.7)',
+    'rgba(153, 102, 255, 0.7)',
+    'rgba(255, 159, 64, 0.7)',
+    'rgba(199, 199, 199, 0.7)',
+    'rgba(83, 102, 255, 0.7)',
+    'rgba(40, 159, 64, 0.7)',
+    'rgba(210, 99, 132, 0.7)',
+  ];
+  
+  // Prepare data for the chart
+  const data = {
+    labels: validTokens.map(token => token.symbol),
+    datasets: [
+      {
+        label: getMetricLabel(metric),
+        data: validTokens.map(token => token[metric] as number),
+        backgroundColor: backgroundColors.slice(0, validTokens.length),
+      },
+    ],
+  };
+
   const options = {
     responsive: true,
     maintainAspectRatio: false,
@@ -48,7 +71,7 @@ export function TokenBarChart({ data, title, darkMode = false }: TokenBarChartPr
       },
       title: {
         display: true,
-        text: title,
+        text: `${getMetricLabel(metric)} - Топ ${tokens.length} токенов`,
         color: darkMode ? '#fff' : '#333',
         font: {
           size: 16,
@@ -85,8 +108,23 @@ export function TokenBarChart({ data, title, darkMode = false }: TokenBarChartPr
   };
 
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-80">
       <Bar options={options} data={data} />
     </div>
   );
+}
+
+// Helper function to get human-readable metric labels
+function getMetricLabel(metric: keyof Token): string {
+  const metricLabels: Record<string, string> = {
+    price: 'Цена',
+    market_cap: 'Капитализация',
+    reserve: 'Резерв DEL',
+    delegation_percentage: 'Делегировано %',
+    supply_percentage: 'Выпуск от максимума %',
+    crr: 'CRR',
+    wallets_count: 'Кошельки',
+  };
+  
+  return metricLabels[metric] || String(metric);
 } 

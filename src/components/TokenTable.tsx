@@ -31,6 +31,16 @@ export function TokenTable({
     return num.toFixed(2) + '%';
   };
 
+  const formatPrice = (price: number) => {
+    // Для цен используем больше десятичных знаков
+    return `${price.toFixed(8)} DEL`;
+  };
+
+  const formatMarketCap = (marketCap: number) => {
+    // Показываем капитализацию в DEL
+    return `${formatNumber(marketCap)} DEL`;
+  };
+
   const getPriceChangeClassName = (change: number) => {
     if (change > 0) return darkMode ? 'text-green-400' : 'text-green-600';
     if (change < 0) return darkMode ? 'text-red-400' : 'text-red-600';
@@ -63,14 +73,14 @@ export function TokenTable({
               className={`px-6 py-3 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase tracking-wider cursor-pointer hover:bg-opacity-80`}
               onClick={() => onSort('price')}
             >
-              Цена {sortBy === 'price' && (sortOrder === 'asc' ? '↑' : '↓')}
+              Цена (DEL) {sortBy === 'price' && (sortOrder === 'asc' ? '↑' : '↓')}
             </th>
             <th
               scope="col"
               className={`px-6 py-3 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase tracking-wider cursor-pointer hover:bg-opacity-80`}
               onClick={() => onSort('market_cap')}
             >
-              Капитализация {sortBy === 'market_cap' && (sortOrder === 'asc' ? '↑' : '↓')}
+              Капитализация (DEL) {sortBy === 'market_cap' && (sortOrder === 'asc' ? '↑' : '↓')}
             </th>
             <th
               scope="col"
@@ -120,10 +130,10 @@ export function TokenTable({
                 </div>
               </td>
               <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-500'}`}>
-                ${token.price.toFixed(6)}
+                {formatPrice(token.price)}
               </td>
               <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-500'}`}>
-                ${formatNumber(token.market_cap || 0)}
+                {formatMarketCap(token.market_cap || 0)}
               </td>
               <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${getPriceChangeClassName(priceChanges[token.symbol]?.[timeFrame] || 0)}`}>
                 {getPriceChangeText(token.symbol)}
