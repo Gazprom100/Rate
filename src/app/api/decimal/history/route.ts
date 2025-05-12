@@ -6,6 +6,22 @@ export const dynamic = 'force-dynamic';
 // Переключаемся на стандартный рантайм
 // export const runtime = 'edge';
 
+// Функция для преобразования значений с учетом сдвига на 18 знаков
+const convertFromDecimals = (value: string | number): number => {
+  if (!value) return 0;
+  
+  const numValue = typeof value === 'string' ? value : value.toString();
+  
+  try {
+    // Простое преобразование через деление на 10^18
+    // Это работает лучше для больших чисел блокчейна
+    return parseFloat(numValue) / 1000000000000000000; // 10^18
+  } catch (e) {
+    console.error('Error converting from decimals:', e);
+    return 0;
+  }
+};
+
 export async function GET(request: NextRequest) {
   try {
     console.log('Starting fetch request to Decimal API History...');
@@ -71,6 +87,22 @@ export async function GET(request: NextRequest) {
     // Обрабатываем различные форматы ответов
     if (data.Ok === true && data.Result) {
       console.log('Successfully retrieved token history data');
+      
+      // Преобразуем числовые значения в истории цен
+      if (data.Result.price_history && Array.isArray(data.Result.price_history)) {
+        console.log('Sample price history before conversion:', 
+          data.Result.price_history.length > 0 ? data.Result.price_history[0] : 'No history');
+          
+        data.Result.price_history = data.Result.price_history.map((item: any) => ({
+          ...item,
+          raw_price: item.price, // Сохраняем оригинальное значение для отладки
+          price: convertFromDecimals(item.price)
+        }));
+        
+        console.log('Sample price history after conversion:', 
+          data.Result.price_history.length > 0 ? data.Result.price_history[0] : 'No history');
+      }
+      
       return NextResponse.json(data.Result);
     } else {
       console.log('Token history data returned in unexpected format');

@@ -10,10 +10,17 @@ export interface Token {
   wallets_count: number;
   delegation_percentage: number;
   market_cap?: number;
+  raw_price?: string; // Добавляем оригинальные (неконвертированные) значения для отладки
+  raw_reserve?: string;
 }
 
 // Функция для вычисления рыночной капитализации
 export const calculateMarketCap = (token: Token): number => {
+  if (!token.price || !token.reserve || isNaN(token.price) || isNaN(token.reserve)) {
+    return 0;
+  }
+  
+  // Используем преобразованные значения price и reserve
   return token.price * token.reserve;
 };
 
@@ -21,8 +28,8 @@ export const fetchTokens = async (): Promise<Token[]> => {
   try {
     // Сначала пробуем с новым NodeJS маршрутом
     const endpoints = [
-      '/api/decimal-server/coins',  // NodeJS версия
-      '/api/decimal/coins'          // Edge версия (резервная)
+      '/api/decimal/coins',          // Основной маршрут с преобразованием значений
+      '/api/decimal-server/coins'    // Запасной маршрут
     ];
     
     let data = null;
@@ -35,6 +42,19 @@ export const fetchTokens = async (): Promise<Token[]> => {
         const response = await axios.get(endpoint);
         data = response.data;
         console.log(`Successfully fetched ${data.length} tokens from ${endpoint}`);
+        
+        // Проверяем, имеют ли токены отладочные поля raw_price и raw_reserve
+        if (data.length > 0 && data[0].raw_price) {
+          console.log('Token data includes debug fields (raw values)');
+          console.log('Sample: ', {
+            symbol: data[0].symbol,
+            price: data[0].price,
+            raw_price: data[0].raw_price,
+            reserve: data[0].reserve,
+            raw_reserve: data[0].raw_reserve
+          });
+        }
+        
         break; // Если успешно, прерываем цикл
       } catch (error) {
         console.error(`Error fetching from ${endpoint}:`, error);
@@ -48,10 +68,22 @@ export const fetchTokens = async (): Promise<Token[]> => {
     }
     
     // Добавляем расчет market_cap для каждого токена
-    return data.map((token: Token) => ({
+    const tokensWithMarketCap = data.map((token: Token) => ({
       ...token,
       market_cap: calculateMarketCap(token)
     }));
+    
+    // Проверяем рассчитанные значения капитализации
+    if (tokensWithMarketCap.length > 0) {
+      console.log('Market cap calculation sample:', {
+        symbol: tokensWithMarketCap[0].symbol,
+        price: tokensWithMarketCap[0].price,
+        reserve: tokensWithMarketCap[0].reserve,
+        market_cap: tokensWithMarketCap[0].market_cap
+      });
+    }
+    
+    return tokensWithMarketCap;
   } catch (error) {
     console.error('Error fetching tokens:', error);
     throw error;
@@ -64,7 +96,23 @@ export const fetchTokenHistory = async (tokenId: string, timeFrame: string): Pro
     const response = await axios.get('/api/decimal/history', {
       params: { tokenId, timeFrame }
     });
-    return response.data;
+    
+    const data = response.data;
+    
+    // Проверяем, преобразованы ли значения цены в истории
+    if (data.price_history && data.price_history.length > 0) {
+      // Проверяем, есть ли отладочные поля raw_price
+      if ('raw_price' in data.price_history[0]) {
+        console.log('History price data includes debug fields (raw values)');
+        console.log('Sample history price:', {
+          price: data.price_history[0].price,
+          raw_price: data.price_history[0].raw_price,
+          timestamp: data.price_history[0].timestamp
+        });
+      }
+    }
+    
+    return data;
   } catch (error) {
     console.error('Error fetching token history:', error);
     throw error;

@@ -8,14 +8,21 @@ interface TopTokensCardProps {
 
 export function TopTokensCard({ tokens, darkMode = false }: TopTokensCardProps) {
   const formatNumber = (num: number) => {
+    if (!num || isNaN(num)) return '0.00';
     if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
     if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
     if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
     return num.toFixed(2);
   };
 
+  // Пересчитываем капитализацию для каждого токена
+  const tokensWithMarketCap = tokens.map(token => ({
+    ...token,
+    market_cap: token.price * token.reserve
+  }));
+
   // Сортируем токены по капитализации
-  const sortedTokens = [...tokens].sort((a, b) => (b.market_cap || 0) - (a.market_cap || 0));
+  const sortedTokens = [...tokensWithMarketCap].sort((a, b) => (b.market_cap || 0) - (a.market_cap || 0));
 
   return (
     <div className={`bg-${darkMode ? 'gray-800' : 'white'} rounded-lg shadow p-6`}>

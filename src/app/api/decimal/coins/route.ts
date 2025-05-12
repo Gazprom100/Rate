@@ -6,6 +6,22 @@ export const dynamic = 'force-dynamic';
 // Переключаемся на стандартный рантайм
 // export const runtime = 'edge';
 
+// Функция для преобразования значений с учетом сдвига на 18 знаков
+const convertFromDecimals = (value: string | number): number => {
+  if (!value) return 0;
+  
+  const numValue = typeof value === 'string' ? value : value.toString();
+  
+  try {
+    // Простое преобразование через деление на 10^18
+    // Это работает лучше для больших чисел блокчейна
+    return parseFloat(numValue) / 1000000000000000000; // 10^18
+  } catch (e) {
+    console.error('Error converting from decimals:', e);
+    return 0;
+  }
+};
+
 export async function GET(request: NextRequest) {
   try {
     console.log('Starting fetch request to Decimal API...');
@@ -58,17 +74,45 @@ export async function GET(request: NextRequest) {
       if (Array.isArray(coinsData)) {
         console.log(`Successfully retrieved ${coinsData.length} tokens from API`);
         
-        // Нормализуем ключи к ожидаемому формату
-        const normalizedCoins = coinsData.map(coin => ({
-          id: coin.symbol,
-          symbol: coin.symbol,
-          name: coin.title,
-          price: parseFloat(coin.price || 0),
-          reserve: parseFloat(coin.reserve || 0),
-          crr: parseFloat(coin.crr || 0),
-          wallets_count: parseInt(coin.wallets_count || 0),
-          delegation_percentage: parseFloat(coin.delegation_percentage || 0),
-        }));
+        // Логируем для отладки первый токен
+        if (coinsData.length > 0) {
+          console.log('Sample coin data before conversion:', {
+            symbol: coinsData[0].symbol,
+            price: coinsData[0].price,
+            reserve: coinsData[0].reserve
+          });
+        }
+        
+        // Нормализуем ключи к ожидаемому формату и применяем преобразование
+        const normalizedCoins = coinsData.map(coin => {
+          const price = convertFromDecimals(coin.price || 0);
+          const reserve = convertFromDecimals(coin.reserve || 0);
+          
+          return {
+            id: coin.symbol,
+            symbol: coin.symbol,
+            name: coin.title,
+            price: price,
+            reserve: reserve,
+            crr: parseFloat(coin.crr || 0),
+            wallets_count: parseInt(coin.wallets_count || 0),
+            delegation_percentage: parseFloat(coin.delegation_percentage || 0),
+            // Оригинальные значения для отладки
+            raw_price: coin.price,
+            raw_reserve: coin.reserve
+          };
+        });
+        
+        // Логируем для отладки первый преобразованный токен
+        if (normalizedCoins.length > 0) {
+          console.log('Sample coin data after conversion:', {
+            symbol: normalizedCoins[0].symbol,
+            price: normalizedCoins[0].price,
+            raw_price: normalizedCoins[0].raw_price,
+            reserve: normalizedCoins[0].reserve,
+            raw_reserve: normalizedCoins[0].raw_reserve
+          });
+        }
         
         return NextResponse.json(normalizedCoins);
       }
