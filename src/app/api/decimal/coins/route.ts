@@ -17,9 +17,14 @@ export async function GET(request: NextRequest) {
     
     console.log(`Fetching coins with limit=${limit}, offset=${offset}`);
     
-    const url = new URL('https://api.decimalchain.com/api/v1/coins');
+    // Исправляем URL API в соответствии с документацией Swagger
+    // basePath: "/api/v1/coins" означает, что полный путь должен быть:
+    // https://api.decimalchain.com/api/v1/coins/coins
+    const url = new URL('https://api.decimalchain.com/api/v1/coins/coins');
     url.searchParams.append('limit', limit);
     url.searchParams.append('offset', offset);
+    
+    console.log(`Sending request to: ${url.toString()}`);
     
     const response = await fetch(url, {
       method: 'GET',

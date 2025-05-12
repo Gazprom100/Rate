@@ -28,7 +28,8 @@ export async function GET(request: NextRequest) {
 
     console.log(`Fetching history for token ${tokenId} with timeFrame: ${timeFrame || 'default'}`);
     
-    // Конструируем URL с правильным форматом
+    // Конструируем URL с правильным форматом согласно документации Swagger
+    // URL должен быть: /api/v1/coins/{symbol}
     const baseUrl = 'https://api.decimalchain.com/api/v1/coins';
     const apiUrl = `${baseUrl}/${tokenId}`;
     
@@ -37,6 +38,8 @@ export async function GET(request: NextRequest) {
     if (timeFrame) {
       url.searchParams.append('timeFrame', timeFrame);
     }
+    
+    console.log(`Sending request to: ${url.toString()}`);
 
     const response = await fetch(url, {
       method: 'GET',

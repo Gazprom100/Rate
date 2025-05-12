@@ -19,8 +19,12 @@ export async function GET(request: NextRequest) {
     
     console.log(`Fetching coins with limit=${limit}, offset=${offset}`);
     
+    // Исправляем URL API в соответствии с документацией Swagger
+    const apiUrl = 'https://api.decimalchain.com/api/v1/coins/coins';
+    console.log(`Sending request to: ${apiUrl}`);
+    
     // Используем axios вместо fetch с добавлением параметров пагинации
-    const response = await axios.get('https://api.decimalchain.com/api/v1/coins', {
+    const response = await axios.get(apiUrl, {
       headers: {
         'Accept': 'application/json',
         'User-Agent': 'Rate-App/1.0',
