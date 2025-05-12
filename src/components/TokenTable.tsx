@@ -1,5 +1,5 @@
 import React from 'react';
-import { Token } from '@/utils/decimalApi';
+import { Token, convertFromRawValue } from '@/utils/decimalApi';
 
 interface TokenTableProps {
   tokens: Token[];
@@ -31,8 +31,21 @@ export function TokenTable({
     return num.toFixed(2) + '%';
   };
 
-  const formatPrice = (price: number) => {
-    // Для цен используем больше десятичных знаков
+  const formatPrice = (price: number, rawPrice?: string) => {
+    // Check if price is extremely small (likely due to conversion issues)
+    if (price === 0 || price < 0.00000001) {
+      // Try to format using the raw value if available
+      if (rawPrice) {
+        try {
+          const convertedPrice = convertFromRawValue(rawPrice);
+          return `${convertedPrice.toFixed(8)} DEL`;
+        } catch (e) {
+          console.error('Error formatting price from raw value:', e);
+        }
+      }
+    }
+    
+    // Default formatting for normal price values
     return `${price.toFixed(8)} DEL`;
   };
 
@@ -130,7 +143,7 @@ export function TokenTable({
                 </div>
               </td>
               <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-500'}`}>
-                {formatPrice(token.price)}
+                {formatPrice(token.price, token.raw_price)}
               </td>
               <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-500'}`}>
                 {formatMarketCap(token.market_cap || 0)}

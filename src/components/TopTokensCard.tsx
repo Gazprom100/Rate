@@ -1,5 +1,5 @@
 import React from 'react';
-import { Token } from '@/utils/decimalApi';
+import { Token, convertFromRawValue } from '@/utils/decimalApi';
 
 interface TopTokensCardProps {
   tokens: Token[];
@@ -15,8 +15,21 @@ export function TopTokensCard({ tokens, darkMode = false }: TopTokensCardProps) 
     return num.toFixed(2);
   };
 
-  const formatPrice = (price: number) => {
-    // Для цен используем больше десятичных знаков
+  const formatPrice = (price: number, rawPrice?: string) => {
+    // Check if price is extremely small (likely due to conversion issues)
+    if (price === 0 || price < 0.00000001) {
+      // Try to format using the raw value if available
+      if (rawPrice) {
+        try {
+          const convertedPrice = convertFromRawValue(rawPrice);
+          return `${convertedPrice.toFixed(8)} DEL`;
+        } catch (e) {
+          console.error('Error formatting price from raw value:', e);
+        }
+      }
+    }
+    
+    // Default formatting for normal price values
     return `${price.toFixed(8)} DEL`;
   };
 
@@ -26,10 +39,20 @@ export function TopTokensCard({ tokens, darkMode = false }: TopTokensCardProps) 
   };
 
   // Пересчитываем капитализацию для каждого токена
-  const tokensWithMarketCap = tokens.map(token => ({
-    ...token,
-    market_cap: token.price * token.reserve
-  }));
+  const tokensWithMarketCap = tokens.map(token => {
+    // Use converted values or fallback to raw conversion if price is too small
+    const effectivePrice = (token.price === 0 || token.price < 0.00000001) && token.raw_price
+      ? convertFromRawValue(token.raw_price)
+      : token.price;
+    
+    // Используем current_supply вместо reserve для расчета капитализации
+    const currentSupply = token.current_supply || 0;
+      
+    return {
+      ...token,
+      market_cap: effectivePrice * currentSupply
+    };
+  });
 
   // Сортируем токены по капитализации
   const sortedTokens = [...tokensWithMarketCap].sort((a, b) => (b.market_cap || 0) - (a.market_cap || 0));
@@ -64,7 +87,7 @@ export function TopTokensCard({ tokens, darkMode = false }: TopTokensCardProps) 
             <div className={`text-right ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
               <div className="font-medium">{formatMarketCap(token.market_cap || 0)}</div>
               <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                {formatPrice(token.price)}
+                {formatPrice(token.price, token.raw_price)}
               </div>
             </div>
           </div>
@@ -73,7 +96,7 @@ export function TopTokensCard({ tokens, darkMode = false }: TopTokensCardProps) 
       
       <div className={`mt-4 pt-4 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
         <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-          <p>Капитализация = цена × резерв в DEL</p>
+          <p>Капитализация = цена × объем выпуска</p>
         </div>
       </div>
     </div>

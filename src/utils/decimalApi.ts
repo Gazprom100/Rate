@@ -21,12 +21,12 @@ export interface Token {
 
 // Функция для вычисления рыночной капитализации
 export const calculateMarketCap = (token: Token): number => {
-  if (!token.price || !token.reserve || isNaN(token.price) || isNaN(token.reserve)) {
+  if (!token.price || !token.current_supply || isNaN(token.price) || isNaN(token.current_supply)) {
     return 0;
   }
   
-  // Используем преобразованные значения price и reserve
-  return token.price * token.reserve;
+  // Используем текущий supply и цену вместо reserve
+  return token.price * token.current_supply;
 };
 
 export const fetchTokens = async (): Promise<Token[]> => {
@@ -134,4 +134,29 @@ export const fetchTokenHistory = async (tokenId: string, timeFrame: string): Pro
 export const calculateGrowth = (current: number, previous: number): number => {
   if (previous === 0) return 0;
   return ((current - previous) / previous) * 100;
+};
+
+// Utility function to convert raw blockchain values (with 18 decimals) to proper numbers
+export const convertFromRawValue = (rawValue?: string | number): number => {
+  if (!rawValue) return 0;
+  
+  const stringValue = typeof rawValue === 'string' ? rawValue : rawValue.toString();
+  
+  try {
+    // Use BigInt for accurate conversion of large numbers
+    const valueBigInt = BigInt(stringValue);
+    const divisor = BigInt(10**18);
+    
+    // Get integer part
+    const integerPart = Number(valueBigInt / divisor);
+    
+    // Get fractional part with proper precision
+    const remainder = Number(valueBigInt % divisor) / 10**18;
+    
+    return integerPart + remainder;
+  } catch (e) {
+    console.error('Error converting raw blockchain value:', e);
+    // Fallback to simple floating point division
+    return parseFloat(stringValue) / 10**18;
+  }
 }; 
