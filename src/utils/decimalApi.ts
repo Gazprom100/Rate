@@ -12,6 +12,8 @@ export interface Token {
   market_cap?: number;
   raw_price?: string; // Добавляем оригинальные (неконвертированные) значения для отладки
   raw_reserve?: string;
+  raw_current_supply?: string; // Исходное значение current_supply из блокчейна
+  raw_max_supply?: string;    // Исходное значение max_supply из блокчейна
   current_supply?: number; // Текущий выпуск токенов
   max_supply?: number;     // Максимальный выпуск токенов
   supply_percentage?: number; // Процент выпущенных токенов от максимума
@@ -54,7 +56,11 @@ export const fetchTokens = async (): Promise<Token[]> => {
             price: data[0].price,
             raw_price: data[0].raw_price,
             reserve: data[0].reserve,
-            raw_reserve: data[0].raw_reserve
+            raw_reserve: data[0].raw_reserve,
+            current_supply: data[0].current_supply,
+            raw_current_supply: data[0].raw_current_supply,
+            max_supply: data[0].max_supply,
+            raw_max_supply: data[0].raw_max_supply
           });
         }
         
@@ -82,7 +88,10 @@ export const fetchTokens = async (): Promise<Token[]> => {
         symbol: tokensWithMarketCap[0].symbol,
         price: tokensWithMarketCap[0].price,
         reserve: tokensWithMarketCap[0].reserve,
-        market_cap: tokensWithMarketCap[0].market_cap
+        market_cap: tokensWithMarketCap[0].market_cap,
+        current_supply: tokensWithMarketCap[0].current_supply,
+        max_supply: tokensWithMarketCap[0].max_supply,
+        supply_percentage: tokensWithMarketCap[0].supply_percentage
       });
     }
     

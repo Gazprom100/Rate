@@ -13,12 +13,22 @@ const convertFromDecimals = (value: string | number): number => {
   const numValue = typeof value === 'string' ? value : value.toString();
   
   try {
-    // Простое преобразование через деление на 10^18
-    // Это работает лучше для больших чисел блокчейна
-    return parseFloat(numValue) / 1000000000000000000; // 10^18
+    // Используем BigInt для точного преобразования больших чисел
+    // с последующим делением на 10^18
+    const valueBigInt = BigInt(numValue);
+    const divisor = BigInt(10**18);
+    
+    // Получаем целую часть
+    const integerPart = Number(valueBigInt / divisor);
+    
+    // Получаем дробную часть с нужной точностью
+    const remainder = Number(valueBigInt % divisor) / 10**18;
+    
+    return integerPart + remainder;
   } catch (e) {
     console.error('Error converting from decimals:', e);
-    return 0;
+    // Запасной вариант - простое деление с плавающей точкой
+    return parseFloat(numValue) / 10**18;
   }
 };
 
@@ -76,17 +86,35 @@ export async function GET(request: NextRequest) {
         
         // Логируем для отладки первый токен
         if (coinsData.length > 0) {
+          const firstCoin = coinsData[0];
           console.log('Sample coin data before conversion:', {
-            symbol: coinsData[0].symbol,
-            price: coinsData[0].price,
-            reserve: coinsData[0].reserve,
-            current_supply: coinsData[0].current_supply || coinsData[0].volume,
-            max_supply: coinsData[0].max_supply || coinsData[0].limit_volume
+            symbol: firstCoin.symbol,
+            price: firstCoin.price,
+            reserve: firstCoin.reserve,
+            current_supply: firstCoin.current_supply || firstCoin.volume,
+            max_supply: firstCoin.max_supply || firstCoin.limit_volume
+          });
+          
+          // Демонстрируем преобразование значений
+          console.log('Conversion demonstration for first token:', {
+            price: {
+              raw: firstCoin.price,
+              converted: convertFromDecimals(firstCoin.price || 0)
+            },
+            current_supply: {
+              raw: firstCoin.current_supply || firstCoin.volume || '0',
+              converted: convertFromDecimals(firstCoin.current_supply || firstCoin.volume || 0)
+            },
+            max_supply: {
+              raw: firstCoin.max_supply || firstCoin.limit_volume || '0',
+              converted: convertFromDecimals(firstCoin.max_supply || firstCoin.limit_volume || 0)
+            }
           });
         }
         
         // Нормализуем ключи к ожидаемому формату и применяем преобразование
         const normalizedCoins = coinsData.map(coin => {
+          // Получаем и преобразуем значения с учетом 18 знаков
           const price = convertFromDecimals(coin.price || 0);
           const reserve = convertFromDecimals(coin.reserve || 0);
           
@@ -94,10 +122,15 @@ export async function GET(request: NextRequest) {
           const rawCurrentSupply = coin.current_supply || coin.volume || '0';
           const rawMaxSupply = coin.max_supply || coin.limit_volume || '0';
           
-          console.log(`Token ${coin.symbol} supply data:`, {
-            rawCurrentSupply,
-            rawMaxSupply
-          });
+          // Для отладки записываем только для нескольких токенов
+          if (['del', 'ddao', 'karma', 'btcu'].includes(coin.symbol.toLowerCase())) {
+            console.log(`Token ${coin.symbol} supply data:`, {
+              rawCurrentSupply,
+              convertedCurrentSupply: convertFromDecimals(rawCurrentSupply),
+              rawMaxSupply,
+              convertedMaxSupply: convertFromDecimals(rawMaxSupply)
+            });
+          }
           
           const currentSupply = convertFromDecimals(rawCurrentSupply);
           const maxSupply = convertFromDecimals(rawMaxSupply);
