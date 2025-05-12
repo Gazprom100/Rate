@@ -3,73 +3,104 @@ import { Token } from '@/utils/decimalApi';
 
 interface TokenTableProps {
   tokens: Token[];
-  sortBy: string;
-  sortDirection: 'asc' | 'desc';
-  onSort: (field: string) => void;
   timeFrame: string;
+  sortBy: string;
+  sortOrder: 'asc' | 'desc';
+  onSort: (field: string) => void;
 }
 
-export const TokenTable: React.FC<TokenTableProps> = ({
-  tokens,
-  sortBy,
-  sortDirection,
-  onSort,
-  timeFrame,
-}) => {
-  const headers = [
-    { key: 'symbol', label: 'Symbol' },
-    { key: 'name', label: 'Name' },
-    { key: 'price', label: 'Price' },
-    { key: 'reserve', label: 'Reserve' },
-    { key: 'crr', label: 'CRR' },
-    { key: 'wallets_count', label: 'Wallets' },
-    { key: 'delegation_percentage', label: 'Delegation %' },
-  ];
+export function TokenTable({ tokens, timeFrame, sortBy, sortOrder, onSort }: TokenTableProps) {
+  const formatNumber = (num: number) => {
+    if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
+    if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+    if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
+    return num.toFixed(2);
+  };
+
+  const formatPercentage = (num: number) => {
+    return num.toFixed(2) + '%';
+  };
 
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
-            {headers.map((header) => (
-              <th
-                key={header.key}
-                onClick={() => onSort(header.key)}
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-              >
-                {header.label}
-                {sortBy === header.key && (
-                  <span className="ml-1">
-                    {sortDirection === 'asc' ? '↑' : '↓'}
-                  </span>
-                )}
-              </th>
-            ))}
+            <th
+              scope="col"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+              onClick={() => onSort('symbol')}
+            >
+              Symbol {sortBy === 'symbol' && (sortOrder === 'asc' ? '↑' : '↓')}
+            </th>
+            <th
+              scope="col"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+              onClick={() => onSort('price')}
+            >
+              Price {sortBy === 'price' && (sortOrder === 'asc' ? '↑' : '↓')}
+            </th>
+            <th
+              scope="col"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+              onClick={() => onSort('market_cap')}
+            >
+              Market Cap {sortBy === 'market_cap' && (sortOrder === 'asc' ? '↑' : '↓')}
+            </th>
+            <th
+              scope="col"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+              onClick={() => onSort('reserve')}
+            >
+              Reserve {sortBy === 'reserve' && (sortOrder === 'asc' ? '↑' : '↓')}
+            </th>
+            <th
+              scope="col"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+              onClick={() => onSort('crr')}
+            >
+              CRR {sortBy === 'crr' && (sortOrder === 'asc' ? '↑' : '↓')}
+            </th>
+            <th
+              scope="col"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+              onClick={() => onSort('wallets_count')}
+            >
+              Wallets {sortBy === 'wallets_count' && (sortOrder === 'asc' ? '↑' : '↓')}
+            </th>
+            <th
+              scope="col"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+              onClick={() => onSort('delegation_percentage')}
+            >
+              Delegation {sortBy === 'delegation_percentage' && (sortOrder === 'asc' ? '↑' : '↓')}
+            </th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {tokens.map((token) => (
             <tr key={token.id} className="hover:bg-gray-50">
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                {token.symbol}
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="text-sm font-medium text-gray-900">{token.symbol}</div>
+                <div className="text-sm text-gray-500">{token.name}</div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {token.name}
+                ${token.price.toFixed(6)}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                ${token.price.toFixed(4)}
+                ${formatNumber(token.market_cap || 0)}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                ${token.reserve.toLocaleString()}
+                {formatNumber(token.reserve)}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {token.crr}%
+                {formatPercentage(token.crr)}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {token.wallets_count.toLocaleString()}
+                {formatNumber(token.wallets_count)}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {token.delegation_percentage.toFixed(2)}%
+                {formatPercentage(token.delegation_percentage)}
               </td>
             </tr>
           ))}
@@ -77,4 +108,4 @@ export const TokenTable: React.FC<TokenTableProps> = ({
       </table>
     </div>
   );
-}; 
+} 

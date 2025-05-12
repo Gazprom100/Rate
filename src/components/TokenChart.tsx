@@ -1,4 +1,5 @@
 import React from 'react';
+import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -9,7 +10,6 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-import { Line } from 'react-chartjs-2';
 
 ChartJS.register(
   CategoryScale,
@@ -34,7 +34,7 @@ interface TokenChartProps {
   title: string;
 }
 
-export const TokenChart: React.FC<TokenChartProps> = ({ data, title }) => {
+export function TokenChart({ data, title }: TokenChartProps) {
   const options = {
     responsive: true,
     plugins: {
@@ -54,8 +54,8 @@ export const TokenChart: React.FC<TokenChartProps> = ({ data, title }) => {
   };
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow">
+    <div className="w-full h-64">
       <Line options={options} data={data} />
     </div>
   );
-}; 
+} 

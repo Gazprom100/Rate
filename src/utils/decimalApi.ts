@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_DECIMAL_API_URL;
+const API_URL = process.env.NEXT_PUBLIC_DECIMAL_API_URL || 'https://api.decimalchain.com/api/v1';
 
 export interface Token {
   id: string;
@@ -11,12 +11,22 @@ export interface Token {
   crr: number;
   wallets_count: number;
   delegation_percentage: number;
+  market_cap?: number;
 }
+
+// Функция для вычисления рыночной капитализации
+export const calculateMarketCap = (token: Token): number => {
+  return token.price * token.reserve;
+};
 
 export const fetchTokens = async (): Promise<Token[]> => {
   try {
     const response = await axios.get(`${API_URL}/coins`);
-    return response.data;
+    // Добавляем расчет market_cap для каждого токена
+    return response.data.map((token: Token) => ({
+      ...token,
+      market_cap: calculateMarketCap(token)
+    }));
   } catch (error) {
     console.error('Error fetching tokens:', error);
     throw error;
