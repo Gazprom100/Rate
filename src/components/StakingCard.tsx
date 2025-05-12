@@ -7,17 +7,25 @@ interface StakingCardProps {
 }
 
 export function StakingCard({ tokens, darkMode = false }: StakingCardProps) {
-  const topDelegatedTokens = useMemo(() => {
-    return [...tokens]
-      .sort((a, b) => b.delegation_percentage - a.delegation_percentage)
-      .slice(0, 5);
+  // Отбираем токены с корректными данными о делегировании
+  const tokensWithDelegation = useMemo(() => {
+    return tokens.filter(token => 
+      token.delegation_percentage !== undefined && 
+      !isNaN(token.delegation_percentage)
+    );
   }, [tokens]);
 
+  const topDelegatedTokens = useMemo(() => {
+    return [...tokensWithDelegation]
+      .sort((a, b) => (b.delegation_percentage || 0) - (a.delegation_percentage || 0))
+      .slice(0, 5);
+  }, [tokensWithDelegation]);
+
   const averageDelegation = useMemo(() => {
-    if (tokens.length === 0) return 0;
-    const sum = tokens.reduce((acc, token) => acc + token.delegation_percentage, 0);
-    return sum / tokens.length;
-  }, [tokens]);
+    if (tokensWithDelegation.length === 0) return 0;
+    const sum = tokensWithDelegation.reduce((acc, token) => acc + (token.delegation_percentage || 0), 0);
+    return sum / tokensWithDelegation.length;
+  }, [tokensWithDelegation]);
 
   return (
     <div className={`bg-${darkMode ? 'gray-800' : 'white'} rounded-lg shadow p-6`}>
@@ -51,11 +59,11 @@ export function StakingCard({ tokens, darkMode = false }: StakingCardProps) {
                   <div className="w-full bg-gray-200 rounded-full h-2.5 mr-2">
                     <div 
                       className="bg-green-600 h-2.5 rounded-full" 
-                      style={{ width: `${Math.min(100, token.delegation_percentage)}%` }}
+                      style={{ width: `${Math.min(100, token.delegation_percentage || 0)}%` }}
                     ></div>
                   </div>
                   <span className={`text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                    {token.delegation_percentage.toFixed(2)}%
+                    {(token.delegation_percentage || 0).toFixed(2)}%
                   </span>
                 </div>
               </div>
@@ -66,7 +74,7 @@ export function StakingCard({ tokens, darkMode = false }: StakingCardProps) {
       
       <div className={`mt-4 pt-4 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
         <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-          <p>Процент делегированных (застейканных) токенов от общего количества.</p>
+          <p>Процент делегированных (застейканных) токенов от текущей эмиссии.</p>
         </div>
       </div>
     </div>

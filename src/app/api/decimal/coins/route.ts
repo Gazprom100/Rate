@@ -115,9 +115,9 @@ export async function GET(request: NextRequest) {
         // Нормализуем ключи к ожидаемому формату и применяем преобразование
         const normalizedCoins = coinsData.map(coin => {
           // Сохраняем все необработанные значения для отладки
-          const rawPrice = coin.price || '0';
+          const rawPrice = coin.current_price || coin.price || '0';
           const rawReserve = coin.reserve || '0';
-          const rawCurrentSupply = coin.current_supply || coin.volume || '0';
+          const rawCurrentSupply = coin.current_supply || coin.volume || coin.total_supply || '0';
           const rawMaxSupply = coin.max_supply || coin.limit_volume || '0';
           
           // Получаем и преобразуем значения с учетом 18 знаков
@@ -159,6 +159,24 @@ export async function GET(request: NextRequest) {
             supplyPercentage = (currentSupply / maxSupply) * 100;
           }
           
+          // Получаем значение процента делегирования
+          let delegationPercentage = 0;
+          try {
+            // Если delegation_percentage есть в ответе API, используем его
+            if (coin.delegation_percentage && parseFloat(coin.delegation_percentage) > 0) {
+              delegationPercentage = parseFloat(coin.delegation_percentage || '0');
+            } 
+            // Иначе рассчитываем из делегированного количества и эмиссии
+            else if (coin.delegated_coins && currentSupply > 0) {
+              const delegatedCoins = convertFromDecimals(coin.delegated_coins || '0');
+              if (delegatedCoins > 0) {
+                delegationPercentage = (delegatedCoins / currentSupply) * 100;
+              }
+            }
+          } catch (e) {
+            console.error(`Error calculating delegation percentage for ${coin.symbol}:`, e);
+          }
+          
           return {
             id: coin.symbol,
             symbol: coin.symbol,
@@ -167,7 +185,7 @@ export async function GET(request: NextRequest) {
             reserve: reserve,
             crr: parseFloat(coin.crr || 0),
             wallets_count: parseInt(coin.wallets_count || 0),
-            delegation_percentage: parseFloat(coin.delegation_percentage || 0),
+            delegation_percentage: delegationPercentage,
             // Добавляем информацию о supply
             current_supply: currentSupply,
             max_supply: maxSupply,

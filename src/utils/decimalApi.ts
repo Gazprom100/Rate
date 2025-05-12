@@ -167,20 +167,24 @@ export const convertFromRawValue = (rawValue?: string | number): number => {
   const stringValue = typeof rawValue === 'string' ? rawValue : rawValue.toString();
   
   try {
-    // Use BigInt for accurate conversion of large numbers
-    const valueBigInt = BigInt(stringValue);
-    const divisor = BigInt(10**18);
-    
-    // Get integer part
-    const integerPart = Number(valueBigInt / divisor);
-    
-    // Get fractional part with proper precision
-    const remainder = Number(valueBigInt % divisor) / 10**18;
-    
-    return integerPart + remainder;
+    // Используем ручное деление для сохранения точности
+    if (stringValue.length > 18) {
+      // Разбиваем на целую и дробную части
+      const integerPart = stringValue.slice(0, stringValue.length - 18);
+      const fractionalPart = stringValue.slice(stringValue.length - 18);
+      
+      // Преобразуем их в числа
+      const intValue = integerPart ? parseInt(integerPart) : 0;
+      const fractValue = fractionalPart ? parseInt(fractionalPart) / 10**18 : 0;
+      
+      return intValue + fractValue;
+    } else {
+      // Если число меньше 1, деление нужно выполнить аккуратно
+      return parseFloat(stringValue) / 10**18;
+    }
   } catch (e) {
     console.error('Error converting raw blockchain value:', e);
-    // Fallback to simple floating point division
+    // Запасной метод
     return parseFloat(stringValue) / 10**18;
   }
 }; 

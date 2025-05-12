@@ -49,6 +49,7 @@ export function TopTokensCard({ tokens, darkMode = false }: TopTokensCardProps) 
     if ((!effectivePrice || effectivePrice < 0.00000001) && token.raw_price) {
       try {
         effectivePrice = convertFromRawValue(token.raw_price);
+        console.log(`Token ${token.symbol} price from raw: ${effectivePrice}`);
       } catch (e) {
         console.error('Error converting raw price for market cap:', e);
       }
