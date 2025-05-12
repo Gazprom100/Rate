@@ -14,6 +14,7 @@ export interface Token {
   raw_reserve?: string;
   raw_current_supply?: string; // Исходное значение current_supply из блокчейна
   raw_max_supply?: string;    // Исходное значение max_supply из блокчейна
+  raw_delegated?: string;     // Исходное значение делегированных токенов
   current_supply?: number; // Текущий выпуск токенов
   max_supply?: number;     // Максимальный выпуск токенов
   supply_percentage?: number; // Процент выпущенных токенов от максимума
@@ -21,36 +22,52 @@ export interface Token {
 
 // Функция для вычисления рыночной капитализации
 export const calculateMarketCap = (token: Token): number => {
-  // Получаем эффективную цену (либо из уже преобразованного значения, либо из сырого)
-  let effectivePrice = token.price;
-  
-  // Если цена близка к нулю, попробуем использовать raw_price
-  if ((!effectivePrice || effectivePrice < 0.00000001) && token.raw_price) {
-    try {
+  try {
+    // Получаем эффективную цену (либо из уже преобразованного значения, либо из сырого)
+    let effectivePrice = token.price;
+    
+    // Если цена близка к нулю, попробуем использовать raw_price
+    if ((!effectivePrice || effectivePrice < 0.00000001) && token.raw_price) {
       effectivePrice = convertFromRawValue(token.raw_price);
-    } catch (e) {
-      console.error('Error converting raw price for market cap:', e);
+      // Логируем для отладки
+      if (effectivePrice > 0) {
+        console.log(`Recalculated price for ${token.symbol}: ${effectivePrice}`);
+      }
     }
-  }
-  
-  // Получаем эффективный current_supply
-  let effectiveSupply = token.current_supply || 0;
-  
-  // Если supply близок к нулю, попробуем использовать raw_current_supply
-  if ((!effectiveSupply || effectiveSupply < 0.00000001) && token.raw_current_supply) {
-    try {
+    
+    // Получаем эффективный current_supply
+    let effectiveSupply = token.current_supply || 0;
+    
+    // Если supply близок к нулю, попробуем использовать raw_current_supply
+    if ((!effectiveSupply || effectiveSupply < 0.00000001) && token.raw_current_supply) {
       effectiveSupply = convertFromRawValue(token.raw_current_supply);
-    } catch (e) {
-      console.error('Error converting raw supply for market cap:', e);
+      // Логируем для отладки
+      if (effectiveSupply > 0) {
+        console.log(`Recalculated supply for ${token.symbol}: ${effectiveSupply}`);
+      }
     }
-  }
-  
-  // Проверка на валидные числа
-  if (!effectivePrice || !effectiveSupply || isNaN(effectivePrice) || isNaN(effectiveSupply)) {
+    
+    // Проверка на валидные числа
+    if (!effectivePrice || !effectiveSupply || isNaN(effectivePrice) || isNaN(effectiveSupply)) {
+      return 0;
+    }
+    
+    const marketCap = effectivePrice * effectiveSupply;
+    
+    // Для избранных токенов покажем подробный расчет капитализации
+    if (['makarovsky', 'del', 'ddao'].includes(token.symbol.toLowerCase())) {
+      console.log(`Market cap calculation for ${token.symbol}:`, {
+        price: effectivePrice,
+        supply: effectiveSupply,
+        marketCap
+      });
+    }
+    
+    return marketCap;
+  } catch (e) {
+    console.error(`Error calculating market cap for ${token.symbol}:`, e);
     return 0;
   }
-  
-  return effectivePrice * effectiveSupply;
 };
 
 export const fetchTokens = async (): Promise<Token[]> => {

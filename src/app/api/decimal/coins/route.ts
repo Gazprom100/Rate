@@ -117,8 +117,23 @@ export async function GET(request: NextRequest) {
           // Сохраняем все необработанные значения для отладки
           const rawPrice = coin.current_price || coin.price || '0';
           const rawReserve = coin.reserve || '0';
-          const rawCurrentSupply = coin.current_supply || coin.volume || coin.total_supply || '0';
+          const rawCurrentSupply = coin.total_supply || coin.current_supply || coin.volume || '0';
           const rawMaxSupply = coin.max_supply || coin.limit_volume || '0';
+          const rawDelegated = coin.delegate || coin.delegated_coins || '0';
+          
+          // Логируем для проверки правильности конвертации (только для избранных токенов)
+          if (['makarovsky', 'del', 'ddao'].includes(coin.symbol.toLowerCase())) {
+            console.log(`DEBUG ${coin.symbol} raw values:`, {
+              current_price: coin.current_price,
+              price: coin.price,
+              rawPrice,
+              total_supply: coin.total_supply,
+              current_supply: coin.current_supply,
+              rawCurrentSupply,
+              rawReserve,
+              rawDelegated
+            });
+          }
           
           // Получаем и преобразуем значения с учетом 18 знаков
           let price;
@@ -153,6 +168,14 @@ export async function GET(request: NextRequest) {
             maxSupply = 0;
           }
           
+          let delegated;
+          try {
+            delegated = convertFromDecimals(rawDelegated);
+          } catch (e) {
+            console.error(`Error converting delegated for ${coin.symbol}:`, e);
+            delegated = 0;
+          }
+          
           // Рассчитываем процент текущего supply от максимального
           let supplyPercentage = 0;
           if (maxSupply > 0) {
@@ -166,15 +189,58 @@ export async function GET(request: NextRequest) {
             if (coin.delegation_percentage && parseFloat(coin.delegation_percentage) > 0) {
               delegationPercentage = parseFloat(coin.delegation_percentage || '0');
             } 
-            // Иначе рассчитываем из делегированного количества и эмиссии
-            else if (coin.delegated_coins && currentSupply > 0) {
-              const delegatedCoins = convertFromDecimals(coin.delegated_coins || '0');
-              if (delegatedCoins > 0) {
-                delegationPercentage = (delegatedCoins / currentSupply) * 100;
+            // Иначе рассчитываем из делегированного количества и текущего объема
+            else if (coin.delegate && (coin.current_supply || coin.volume || coin.total_supply)) {
+              // Используем raw значения для более точного расчета
+              const rawDelegated = coin.delegate || '0';
+              const rawVolume = coin.current_supply || coin.volume || coin.total_supply || '0';
+              
+              if (rawDelegated !== '0' && rawVolume !== '0') {
+                // Чтобы избежать потери точности при работе с большими числами,
+                // делим raw значения и умножаем на 100 для получения процента
+                try {
+                  // Используем BigInt для точных вычислений
+                  const delegatedBigInt = BigInt(rawDelegated);
+                  const volumeBigInt = BigInt(rawVolume);
+                  
+                  if (volumeBigInt > BigInt(0)) {
+                    // (delegated * 10000) / volume -> получаем процент с двумя знаками после запятой
+                    // множитель 10000 для того, чтобы сохранить 2 знака после запятой
+                    const percentageMultiplied = (delegatedBigInt * BigInt(10000)) / volumeBigInt;
+                    delegationPercentage = Number(percentageMultiplied) / 100;
+                    
+                    console.log(`Calculated delegation for ${coin.symbol}: ${delegationPercentage}%`);
+                    
+                    // Дополнительно для проверки рассчитаем через convertFromDecimals
+                    const delegatedConverted = convertFromDecimals(rawDelegated);
+                    const volumeConverted = convertFromDecimals(rawVolume);
+                    const alternativePercentage = (delegatedConverted / volumeConverted) * 100;
+                    
+                    console.log(`Alternative delegation calculation for ${coin.symbol}: ${alternativePercentage}%`);
+                  }
+                } catch (e) {
+                  console.error(`Error calculating delegation with BigInt for ${coin.symbol}:`, e);
+                  
+                  // Запасной вариант - используем преобразованные значения
+                  delegationPercentage = (delegated / currentSupply) * 100;
+                }
               }
             }
           } catch (e) {
             console.error(`Error calculating delegation percentage for ${coin.symbol}:`, e);
+          }
+
+          // Для отладки выведем преобразованные значения для некоторых токенов
+          if (['makarovsky', 'del', 'ddao'].includes(coin.symbol.toLowerCase())) {
+            console.log(`DEBUG ${coin.symbol} converted values:`, {
+              price,
+              currentSupply,
+              maxSupply,
+              reserve,
+              delegated,
+              delegationPercentage,
+              supplyPercentage
+            });
           }
           
           return {
@@ -194,7 +260,8 @@ export async function GET(request: NextRequest) {
             raw_price: rawPrice,
             raw_reserve: rawReserve,
             raw_current_supply: rawCurrentSupply,
-            raw_max_supply: rawMaxSupply
+            raw_max_supply: rawMaxSupply,
+            raw_delegated: rawDelegated
           };
         });
         

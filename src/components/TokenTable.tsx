@@ -58,6 +58,22 @@ export function TokenTable({
     return `${formatNumber(marketCap)} DEL`;
   };
 
+  const formatReserve = (reserve: number, rawReserve?: string) => {
+    // Проверим сначала наличие исходного значения
+    if ((!reserve || reserve < 0.00000001) && rawReserve && rawReserve !== '0') {
+      try {
+        const convertedReserve = convertFromRawValue(rawReserve);
+        if (convertedReserve && convertedReserve > 0) {
+          return formatNumber(convertedReserve);
+        }
+      } catch (e) {
+        console.error('Error formatting reserve from raw value:', e);
+      }
+    }
+    
+    return formatNumber(reserve);
+  };
+
   const getPriceChangeClassName = (change: number) => {
     if (change > 0) return darkMode ? 'text-green-400' : 'text-green-600';
     if (change < 0) return darkMode ? 'text-red-400' : 'text-red-600';
@@ -156,7 +172,7 @@ export function TokenTable({
                 {getPriceChangeText(token.symbol)}
               </td>
               <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-500'}`}>
-                {formatNumber(token.reserve)}
+                {formatReserve(token.reserve, token.raw_reserve)}
               </td>
               <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-500'}`}>
                 {formatPercentage(token.crr)}

@@ -41,6 +41,9 @@ export function StakingCard({ tokens, darkMode = false }: StakingCardProps) {
           <span className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
             {averageDelegation.toFixed(2)}%
           </span>
+          <span className={`ml-2 text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+            (от текущей эмиссии)
+          </span>
         </div>
       </div>
       
