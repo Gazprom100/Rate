@@ -36,22 +36,42 @@ export async function GET(request: NextRequest) {
       timeout: 10000, // 10 секунд таймаут
     });
     
-    // Проверяем формат ответа согласно документации
-    // API должно возвращать { ok: boolean, result: [] }
+    // Получаем данные из ответа
     const data = response.data;
+    console.log('Raw API response:', JSON.stringify(data).substring(0, 200) + '...');
     
-    if (data.ok && Array.isArray(data.result)) {
-      console.log(`Successfully retrieved ${data.result.length} tokens from API`);
-      return NextResponse.json(data.result);
-    } else if (Array.isArray(data)) {
-      // На случай, если API вернет массив напрямую
-      console.log(`API returned array directly with ${data.length} tokens`);
-      return NextResponse.json(data);
-    } else {
-      // Возвращаем данные как есть, если формат другой
-      console.log('API returned response in unexpected format:', typeof data);
-      return NextResponse.json(data);
+    // Правильно обрабатываем вложенную структуру ответа API
+    if (data.Ok === true && Array.isArray(data.Result) && data.Result.length > 0) {
+      const coinsData = data.Result[0].coins;
+      if (Array.isArray(coinsData)) {
+        console.log(`Successfully retrieved ${coinsData.length} tokens from API`);
+        
+        // Нормализуем ключи к ожидаемому формату
+        const normalizedCoins = coinsData.map(coin => ({
+          id: coin.symbol,
+          symbol: coin.symbol,
+          name: coin.title,
+          price: parseFloat(coin.price || 0),
+          reserve: parseFloat(coin.reserve || 0),
+          crr: parseFloat(coin.crr || 0),
+          wallets_count: parseInt(coin.wallets_count || 0),
+          delegation_percentage: parseFloat(coin.delegation_percentage || 0),
+        }));
+        
+        return NextResponse.json(normalizedCoins);
+      }
     }
+    
+    // Если формат не соответствует ожидаемому
+    console.error('Unexpected API response format:', data);
+    return NextResponse.json(
+      { 
+        error: 'API Format Error',
+        message: 'Unexpected data format from Decimal API',
+        statusCode: 500
+      },
+      { status: 500 }
+    );
   } catch (error: any) {
     console.error('Server-side API error:', error.name);
     

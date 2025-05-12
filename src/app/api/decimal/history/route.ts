@@ -66,14 +66,22 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
+    console.log('Raw token history API response:', JSON.stringify(data).substring(0, 200) + '...');
     
     // Обрабатываем различные форматы ответов
-    if (data.ok && data.result) {
+    if (data.Ok === true && data.Result) {
       console.log('Successfully retrieved token history data');
-      return NextResponse.json(data.result);
+      return NextResponse.json(data.Result);
     } else {
       console.log('Token history data returned in unexpected format');
-      return NextResponse.json(data);
+      return NextResponse.json(
+        { 
+          error: 'API Format Error',
+          message: 'Unexpected token history format from Decimal API',
+          statusCode: 500
+        },
+        { status: 500 }
+      );
     }
   } catch (error: any) {
     console.error('Error proxying Decimal API history:', error.name, error.message, error.stack);
