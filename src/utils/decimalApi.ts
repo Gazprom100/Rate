@@ -19,11 +19,36 @@ export const calculateMarketCap = (token: Token): number => {
 
 export const fetchTokens = async (): Promise<Token[]> => {
   try {
-    // Используем локальный API-маршрут вместо прямого запроса к внешнему API
-    const response = await axios.get('/api/decimal/coins');
+    // Сначала пробуем с новым NodeJS маршрутом
+    const endpoints = [
+      '/api/decimal-server/coins',  // NodeJS версия
+      '/api/decimal/coins'          // Edge версия (резервная)
+    ];
+    
+    let data = null;
+    let lastError = null;
+    
+    // Пробуем поочередно все эндпоинты
+    for (const endpoint of endpoints) {
+      try {
+        console.log(`Attempting to fetch tokens from ${endpoint}...`);
+        const response = await axios.get(endpoint);
+        data = response.data;
+        console.log(`Successfully fetched ${data.length} tokens from ${endpoint}`);
+        break; // Если успешно, прерываем цикл
+      } catch (error) {
+        console.error(`Error fetching from ${endpoint}:`, error);
+        lastError = error;
+      }
+    }
+    
+    // Если ни один эндпоинт не сработал, бросаем последнюю ошибку
+    if (!data) {
+      throw lastError || new Error('All API endpoints failed');
+    }
     
     // Добавляем расчет market_cap для каждого токена
-    return response.data.map((token: Token) => ({
+    return data.map((token: Token) => ({
       ...token,
       market_cap: calculateMarketCap(token)
     }));
