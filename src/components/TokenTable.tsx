@@ -32,21 +32,25 @@ export function TokenTable({
   };
 
   const formatPrice = (price: number, rawPrice?: string) => {
-    // Check if price is extremely small (likely due to conversion issues)
-    if (price === 0 || price < 0.00000001) {
-      // Try to format using the raw value if available
-      if (rawPrice) {
-        try {
-          const convertedPrice = convertFromRawValue(rawPrice);
+    // Проверим сначала наличие исходного значения (raw_price)
+    if (rawPrice && rawPrice !== '0') {
+      try {
+        const convertedPrice = convertFromRawValue(rawPrice);
+        if (convertedPrice && convertedPrice > 0) {
           return `${convertedPrice.toFixed(8)} DEL`;
-        } catch (e) {
-          console.error('Error formatting price from raw value:', e);
         }
+      } catch (e) {
+        console.error('Error formatting price from raw value:', e);
       }
     }
     
-    // Default formatting for normal price values
-    return `${price.toFixed(8)} DEL`;
+    // Затем проверяем обычную цену
+    if (price && price > 0) {
+      return `${price.toFixed(8)} DEL`;
+    }
+    
+    // Если ни один вариант не сработал
+    return `0.00000000 DEL`;
   };
 
   const formatMarketCap = (marketCap: number) => {

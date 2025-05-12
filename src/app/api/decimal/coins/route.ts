@@ -114,38 +114,50 @@ export async function GET(request: NextRequest) {
         
         // Нормализуем ключи к ожидаемому формату и применяем преобразование
         const normalizedCoins = coinsData.map(coin => {
-          // Получаем и преобразуем значения с учетом 18 знаков
-          const price = convertFromDecimals(coin.price || 0);
-          const reserve = convertFromDecimals(coin.reserve || 0);
-          
-          // Преобразуем данные о supply, если они есть
+          // Сохраняем все необработанные значения для отладки
+          const rawPrice = coin.price || '0';
+          const rawReserve = coin.reserve || '0';
           const rawCurrentSupply = coin.current_supply || coin.volume || '0';
           const rawMaxSupply = coin.max_supply || coin.limit_volume || '0';
           
-          // Для отладки записываем только для нескольких токенов
-          if (['del', 'ddao', 'karma', 'btcu'].includes(coin.symbol.toLowerCase())) {
-            console.log(`Token ${coin.symbol} supply data:`, {
-              rawCurrentSupply,
-              convertedCurrentSupply: convertFromDecimals(rawCurrentSupply),
-              rawMaxSupply,
-              convertedMaxSupply: convertFromDecimals(rawMaxSupply)
-            });
+          // Получаем и преобразуем значения с учетом 18 знаков
+          let price;
+          try {
+            price = convertFromDecimals(rawPrice);
+          } catch (e) {
+            console.error(`Error converting price for ${coin.symbol}:`, e);
+            price = 0;
           }
           
-          const currentSupply = convertFromDecimals(rawCurrentSupply);
-          const maxSupply = convertFromDecimals(rawMaxSupply);
+          let reserve;
+          try {
+            reserve = convertFromDecimals(rawReserve);
+          } catch (e) {
+            console.error(`Error converting reserve for ${coin.symbol}:`, e);
+            reserve = 0;
+          }
+          
+          let currentSupply;
+          try {
+            currentSupply = convertFromDecimals(rawCurrentSupply);
+          } catch (e) {
+            console.error(`Error converting current_supply for ${coin.symbol}:`, e);
+            currentSupply = 0;
+          }
+          
+          let maxSupply;
+          try {
+            maxSupply = convertFromDecimals(rawMaxSupply);
+          } catch (e) {
+            console.error(`Error converting max_supply for ${coin.symbol}:`, e);
+            maxSupply = 0;
+          }
           
           // Рассчитываем процент текущего supply от максимального
           let supplyPercentage = 0;
           if (maxSupply > 0) {
             supplyPercentage = (currentSupply / maxSupply) * 100;
           }
-          
-          // Используем альтернативный метод получения значения supply, если значения нулевые
-          // Некоторые токены могут иметь данные в другом формате
-          const finalCurrentSupply = currentSupply || 0;
-          const finalMaxSupply = maxSupply || 0;
-          const finalSupplyPercentage = supplyPercentage || 0;
           
           return {
             id: coin.symbol,
@@ -157,12 +169,12 @@ export async function GET(request: NextRequest) {
             wallets_count: parseInt(coin.wallets_count || 0),
             delegation_percentage: parseFloat(coin.delegation_percentage || 0),
             // Добавляем информацию о supply
-            current_supply: finalCurrentSupply,
-            max_supply: finalMaxSupply,
-            supply_percentage: finalSupplyPercentage,
+            current_supply: currentSupply,
+            max_supply: maxSupply,
+            supply_percentage: supplyPercentage,
             // Оригинальные значения для отладки
-            raw_price: coin.price,
-            raw_reserve: coin.reserve,
+            raw_price: rawPrice,
+            raw_reserve: rawReserve,
             raw_current_supply: rawCurrentSupply,
             raw_max_supply: rawMaxSupply
           };

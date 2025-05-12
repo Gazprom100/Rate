@@ -21,12 +21,36 @@ export interface Token {
 
 // Функция для вычисления рыночной капитализации
 export const calculateMarketCap = (token: Token): number => {
-  if (!token.price || !token.current_supply || isNaN(token.price) || isNaN(token.current_supply)) {
+  // Получаем эффективную цену (либо из уже преобразованного значения, либо из сырого)
+  let effectivePrice = token.price;
+  
+  // Если цена близка к нулю, попробуем использовать raw_price
+  if ((!effectivePrice || effectivePrice < 0.00000001) && token.raw_price) {
+    try {
+      effectivePrice = convertFromRawValue(token.raw_price);
+    } catch (e) {
+      console.error('Error converting raw price for market cap:', e);
+    }
+  }
+  
+  // Получаем эффективный current_supply
+  let effectiveSupply = token.current_supply || 0;
+  
+  // Если supply близок к нулю, попробуем использовать raw_current_supply
+  if ((!effectiveSupply || effectiveSupply < 0.00000001) && token.raw_current_supply) {
+    try {
+      effectiveSupply = convertFromRawValue(token.raw_current_supply);
+    } catch (e) {
+      console.error('Error converting raw supply for market cap:', e);
+    }
+  }
+  
+  // Проверка на валидные числа
+  if (!effectivePrice || !effectiveSupply || isNaN(effectivePrice) || isNaN(effectiveSupply)) {
     return 0;
   }
   
-  // Используем текущий supply и цену вместо reserve
-  return token.price * token.current_supply;
+  return effectivePrice * effectiveSupply;
 };
 
 export const fetchTokens = async (): Promise<Token[]> => {

@@ -16,21 +16,25 @@ export function TopTokensCard({ tokens, darkMode = false }: TopTokensCardProps) 
   };
 
   const formatPrice = (price: number, rawPrice?: string) => {
-    // Check if price is extremely small (likely due to conversion issues)
-    if (price === 0 || price < 0.00000001) {
-      // Try to format using the raw value if available
-      if (rawPrice) {
-        try {
-          const convertedPrice = convertFromRawValue(rawPrice);
+    // Проверим сначала наличие исходного значения (raw_price)
+    if (rawPrice && rawPrice !== '0') {
+      try {
+        const convertedPrice = convertFromRawValue(rawPrice);
+        if (convertedPrice && convertedPrice > 0) {
           return `${convertedPrice.toFixed(8)} DEL`;
-        } catch (e) {
-          console.error('Error formatting price from raw value:', e);
         }
+      } catch (e) {
+        console.error('Error formatting price from raw value:', e);
       }
     }
     
-    // Default formatting for normal price values
-    return `${price.toFixed(8)} DEL`;
+    // Затем проверяем обычную цену
+    if (price && price > 0) {
+      return `${price.toFixed(8)} DEL`;
+    }
+    
+    // Если ни один вариант не сработал
+    return `0.00000000 DEL`;
   };
 
   const formatMarketCap = (marketCap: number) => {
@@ -40,17 +44,29 @@ export function TopTokensCard({ tokens, darkMode = false }: TopTokensCardProps) 
 
   // Пересчитываем капитализацию для каждого токена
   const tokensWithMarketCap = tokens.map(token => {
-    // Use converted values or fallback to raw conversion if price is too small
-    const effectivePrice = (token.price === 0 || token.price < 0.00000001) && token.raw_price
-      ? convertFromRawValue(token.raw_price)
-      : token.price;
+    // Получаем эффективную цену
+    let effectivePrice = token.price;
+    if ((!effectivePrice || effectivePrice < 0.00000001) && token.raw_price) {
+      try {
+        effectivePrice = convertFromRawValue(token.raw_price);
+      } catch (e) {
+        console.error('Error converting raw price for market cap:', e);
+      }
+    }
     
-    // Используем current_supply вместо reserve для расчета капитализации
-    const currentSupply = token.current_supply || 0;
+    // Получаем эффективный current_supply
+    let effectiveSupply = token.current_supply || 0;
+    if ((!effectiveSupply || effectiveSupply < 0.00000001) && token.raw_current_supply) {
+      try {
+        effectiveSupply = convertFromRawValue(token.raw_current_supply);
+      } catch (e) {
+        console.error('Error converting raw supply for market cap:', e);
+      }
+    }
       
     return {
       ...token,
-      market_cap: effectivePrice * currentSupply
+      market_cap: effectivePrice * effectiveSupply
     };
   });
 
