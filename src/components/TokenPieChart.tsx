@@ -1,52 +1,44 @@
 import React from 'react';
-import { Line } from 'react-chartjs-2';
+import { Pie } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
+  ArcElement,
   Tooltip,
   Legend,
 } from 'chart.js';
 
 ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
+  ArcElement,
   Tooltip,
   Legend
 );
 
-interface TokenChartProps {
+interface TokenPieChartProps {
   data: {
     labels: string[];
     datasets: {
-      label: string;
       data: number[];
-      borderColor: string;
-      backgroundColor: string;
+      backgroundColor: string[];
     }[];
   };
   title: string;
   darkMode?: boolean;
 }
 
-export function TokenChart({ data, title, darkMode = false }: TokenChartProps) {
+export function TokenPieChart({ data, title, darkMode = false }: TokenPieChartProps) {
   const options = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'top' as const,
+        position: 'right' as const,
         labels: {
           color: darkMode ? '#fff' : '#333',
           font: {
             size: 12,
           },
+          boxWidth: 15,
+          padding: 10,
         },
       },
       title: {
@@ -57,6 +49,9 @@ export function TokenChart({ data, title, darkMode = false }: TokenChartProps) {
           size: 16,
           weight: 'bold' as const,
         },
+        padding: {
+          bottom: 15
+        }
       },
       tooltip: {
         backgroundColor: darkMode ? 'rgba(50, 50, 50, 0.8)' : 'rgba(255, 255, 255, 0.8)',
@@ -64,32 +59,22 @@ export function TokenChart({ data, title, darkMode = false }: TokenChartProps) {
         bodyColor: darkMode ? '#fff' : '#333',
         borderColor: darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
         borderWidth: 1,
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: false,
-        grid: {
-          color: darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-        },
-        ticks: {
-          color: darkMode ? '#ccc' : '#666',
-        },
-      },
-      x: {
-        grid: {
-          color: darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-        },
-        ticks: {
-          color: darkMode ? '#ccc' : '#666',
-        },
+        callbacks: {
+          label: (context: any) => {
+            const label = context.label || '';
+            const value = context.raw || 0;
+            const total = context.dataset.data.reduce((acc: number, curr: number) => acc + curr, 0);
+            const percentage = ((value / total) * 100).toFixed(1);
+            return `${label}: ${percentage}%`;
+          }
+        }
       },
     },
   };
 
   return (
     <div className="w-full h-full">
-      <Line options={options} data={data} />
+      <Pie options={options} data={data} />
     </div>
   );
 } 

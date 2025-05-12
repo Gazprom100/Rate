@@ -7,9 +7,19 @@ interface TokenTableProps {
   sortBy: string;
   sortOrder: 'asc' | 'desc';
   onSort: (field: string) => void;
+  darkMode?: boolean;
+  priceChanges?: Record<string, Record<string, number>>;
 }
 
-export function TokenTable({ tokens, timeFrame, sortBy, sortOrder, onSort }: TokenTableProps) {
+export function TokenTable({ 
+  tokens, 
+  timeFrame, 
+  sortBy, 
+  sortOrder, 
+  onSort, 
+  darkMode = false,
+  priceChanges = {}
+}: TokenTableProps) {
   const formatNumber = (num: number) => {
     if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
     if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
@@ -21,85 +31,113 @@ export function TokenTable({ tokens, timeFrame, sortBy, sortOrder, onSort }: Tok
     return num.toFixed(2) + '%';
   };
 
+  const getPriceChangeClassName = (change: number) => {
+    if (change > 0) return darkMode ? 'text-green-400' : 'text-green-600';
+    if (change < 0) return darkMode ? 'text-red-400' : 'text-red-600';
+    return darkMode ? 'text-gray-400' : 'text-gray-500';
+  };
+
+  const getPriceChangeText = (symbol: string) => {
+    if (!priceChanges[symbol] || !priceChanges[symbol][timeFrame]) {
+      return '0.00%';
+    }
+    
+    const change = priceChanges[symbol][timeFrame];
+    return `${change > 0 ? '+' : ''}${change.toFixed(2)}%`;
+  };
+
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
+      <table className={`min-w-full divide-y ${darkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
+        <thead className={darkMode ? 'bg-gray-700' : 'bg-gray-50'}>
           <tr>
             <th
               scope="col"
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+              className={`px-6 py-3 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase tracking-wider cursor-pointer hover:bg-opacity-80`}
               onClick={() => onSort('symbol')}
             >
-              Symbol {sortBy === 'symbol' && (sortOrder === 'asc' ? '↑' : '↓')}
+              Токен {sortBy === 'symbol' && (sortOrder === 'asc' ? '↑' : '↓')}
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+              className={`px-6 py-3 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase tracking-wider cursor-pointer hover:bg-opacity-80`}
               onClick={() => onSort('price')}
             >
-              Price {sortBy === 'price' && (sortOrder === 'asc' ? '↑' : '↓')}
+              Цена {sortBy === 'price' && (sortOrder === 'asc' ? '↑' : '↓')}
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+              className={`px-6 py-3 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase tracking-wider cursor-pointer hover:bg-opacity-80`}
               onClick={() => onSort('market_cap')}
             >
-              Market Cap {sortBy === 'market_cap' && (sortOrder === 'asc' ? '↑' : '↓')}
+              Капитализация {sortBy === 'market_cap' && (sortOrder === 'asc' ? '↑' : '↓')}
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+              className={`px-6 py-3 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase tracking-wider cursor-pointer hover:bg-opacity-80`}
+            >
+              Изменение ({timeFrame})
+            </th>
+            <th
+              scope="col"
+              className={`px-6 py-3 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase tracking-wider cursor-pointer hover:bg-opacity-80`}
               onClick={() => onSort('reserve')}
             >
-              Reserve {sortBy === 'reserve' && (sortOrder === 'asc' ? '↑' : '↓')}
+              Резерв DEL {sortBy === 'reserve' && (sortOrder === 'asc' ? '↑' : '↓')}
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+              className={`px-6 py-3 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase tracking-wider cursor-pointer hover:bg-opacity-80`}
               onClick={() => onSort('crr')}
             >
               CRR {sortBy === 'crr' && (sortOrder === 'asc' ? '↑' : '↓')}
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+              className={`px-6 py-3 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase tracking-wider cursor-pointer hover:bg-opacity-80`}
               onClick={() => onSort('wallets_count')}
             >
-              Wallets {sortBy === 'wallets_count' && (sortOrder === 'asc' ? '↑' : '↓')}
+              Кошельки {sortBy === 'wallets_count' && (sortOrder === 'asc' ? '↑' : '↓')}
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+              className={`px-6 py-3 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase tracking-wider cursor-pointer hover:bg-opacity-80`}
               onClick={() => onSort('delegation_percentage')}
             >
-              Delegation {sortBy === 'delegation_percentage' && (sortOrder === 'asc' ? '↑' : '↓')}
+              Делегировано % {sortBy === 'delegation_percentage' && (sortOrder === 'asc' ? '↑' : '↓')}
             </th>
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
+        <tbody className={`${darkMode ? 'bg-gray-800' : 'bg-white'} divide-y ${darkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
           {tokens.map((token) => (
-            <tr key={token.id} className="hover:bg-gray-50">
+            <tr key={token.id} className={`hover:${darkMode ? 'bg-gray-700' : 'bg-gray-50'} transition-colors duration-150`}>
               <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm font-medium text-gray-900">{token.symbol}</div>
-                <div className="text-sm text-gray-500">{token.name}</div>
+                <div className={`flex items-center`}>
+                  <div className="ml-4">
+                    <div className={`text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>{token.symbol}</div>
+                    <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{token.name}</div>
+                  </div>
+                </div>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-500'}`}>
                 ${token.price.toFixed(6)}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-500'}`}>
                 ${formatNumber(token.market_cap || 0)}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${getPriceChangeClassName(priceChanges[token.symbol]?.[timeFrame] || 0)}`}>
+                {getPriceChangeText(token.symbol)}
+              </td>
+              <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-500'}`}>
                 {formatNumber(token.reserve)}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-500'}`}>
                 {formatPercentage(token.crr)}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-500'}`}>
                 {formatNumber(token.wallets_count)}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-500'}`}>
                 {formatPercentage(token.delegation_percentage)}
               </td>
             </tr>

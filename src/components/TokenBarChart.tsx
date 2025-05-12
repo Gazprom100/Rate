@@ -1,11 +1,10 @@
 import React from 'react';
-import { Line } from 'react-chartjs-2';
+import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
-  PointElement,
-  LineElement,
+  BarElement,
   Title,
   Tooltip,
   Legend,
@@ -14,28 +13,26 @@ import {
 ChartJS.register(
   CategoryScale,
   LinearScale,
-  PointElement,
-  LineElement,
+  BarElement,
   Title,
   Tooltip,
   Legend
 );
 
-interface TokenChartProps {
+interface TokenBarChartProps {
   data: {
     labels: string[];
     datasets: {
       label: string;
       data: number[];
-      borderColor: string;
-      backgroundColor: string;
+      backgroundColor: string[];
     }[];
   };
   title: string;
   darkMode?: boolean;
 }
 
-export function TokenChart({ data, title, darkMode = false }: TokenChartProps) {
+export function TokenBarChart({ data, title, darkMode = false }: TokenBarChartProps) {
   const options = {
     responsive: true,
     maintainAspectRatio: false,
@@ -68,7 +65,7 @@ export function TokenChart({ data, title, darkMode = false }: TokenChartProps) {
     },
     scales: {
       y: {
-        beginAtZero: false,
+        beginAtZero: true,
         grid: {
           color: darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
         },
@@ -89,7 +86,7 @@ export function TokenChart({ data, title, darkMode = false }: TokenChartProps) {
 
   return (
     <div className="w-full h-full">
-      <Line options={options} data={data} />
+      <Bar options={options} data={data} />
     </div>
   );
 } 
