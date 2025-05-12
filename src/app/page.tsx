@@ -16,6 +16,7 @@ export default function Home() {
   const [tokens, setTokens] = useState<Token[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
   const [selectedTimeFrame, setSelectedTimeFrame] = useState('24h');
   const [sortBy, setSortBy] = useState('market_cap');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -24,11 +25,25 @@ export default function Home() {
     const loadTokens = async () => {
       try {
         setLoading(true);
+        setDebugInfo('Начинаем загрузку токенов...');
+        
+        // Пробуем напрямую обратиться к API для отладки
+        try {
+          const testResponse = await fetch('/api/decimal-server/coins');
+          const testJson = await testResponse.json();
+          setDebugInfo(prev => `${prev}\nТестовый запрос: ${JSON.stringify(testJson).slice(0, 200)}...`);
+        } catch (testErr) {
+          setDebugInfo(prev => `${prev}\nОшибка тестового запроса: ${testErr instanceof Error ? testErr.message : String(testErr)}`);
+        }
+        
         const data = await fetchTokens();
+        setDebugInfo(prev => `${prev}\nУспешно загружено ${data.length} токенов`);
         setTokens(data);
         setError(null);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load tokens');
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load tokens';
+        setDebugInfo(prev => `${prev}\nОшибка загрузки: ${errorMessage}`);
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
@@ -61,6 +76,12 @@ export default function Home() {
       <div className="min-h-screen bg-gray-100 py-6 flex flex-col justify-center sm:py-12">
         <div className="relative py-3 sm:max-w-xl sm:mx-auto">
           <div className="text-center">Loading...</div>
+          {debugInfo && (
+            <div className="mt-4 p-4 bg-gray-200 rounded text-xs text-left whitespace-pre-wrap">
+              <div className="font-bold mb-2">Debug Info:</div>
+              {debugInfo}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -71,6 +92,12 @@ export default function Home() {
       <div className="min-h-screen bg-gray-100 py-6 flex flex-col justify-center sm:py-12">
         <div className="relative py-3 sm:max-w-xl sm:mx-auto">
           <div className="text-center text-red-600">Error: {error}</div>
+          {debugInfo && (
+            <div className="mt-4 p-4 bg-gray-200 rounded text-xs text-left whitespace-pre-wrap">
+              <div className="font-bold mb-2">Debug Info:</div>
+              {debugInfo}
+            </div>
+          )}
         </div>
       </div>
     );
