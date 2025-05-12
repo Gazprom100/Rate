@@ -7,6 +7,9 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Decimal Token Rating',
   description: 'Rating system for Decimal blockchain tokens',
+  icons: {
+    icon: '/favicon.ico',
+  }
 }
 
 export default function RootLayout({

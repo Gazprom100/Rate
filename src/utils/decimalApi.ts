@@ -1,7 +1,5 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_DECIMAL_API_URL || 'https://api.decimalchain.com/api/v1';
-
 export interface Token {
   id: string;
   symbol: string;
@@ -21,7 +19,9 @@ export const calculateMarketCap = (token: Token): number => {
 
 export const fetchTokens = async (): Promise<Token[]> => {
   try {
-    const response = await axios.get(`${API_URL}/coins`);
+    // Используем локальный API-маршрут вместо прямого запроса к внешнему API
+    const response = await axios.get('/api/decimal/coins');
+    
     // Добавляем расчет market_cap для каждого токена
     return response.data.map((token: Token) => ({
       ...token,
@@ -35,8 +35,9 @@ export const fetchTokens = async (): Promise<Token[]> => {
 
 export const fetchTokenHistory = async (tokenId: string, timeFrame: string): Promise<any> => {
   try {
-    const response = await axios.get(`${API_URL}/coins/${tokenId}/history`, {
-      params: { timeFrame }
+    // Используем локальный API-маршрут вместо прямого запроса к внешнему API
+    const response = await axios.get('/api/decimal/history', {
+      params: { tokenId, timeFrame }
     });
     return response.data;
   } catch (error) {
