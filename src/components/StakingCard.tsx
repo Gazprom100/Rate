@@ -15,11 +15,24 @@ export function StakingCard({ tokens, darkMode = false }: StakingCardProps) {
     );
   }, [tokens]);
 
-  const topDelegatedTokens = useMemo(() => {
+  // Сортируем токены по проценту делегирования
+  const sortedTokens = useMemo(() => {
     return [...tokensWithDelegation]
-      .sort((a, b) => (b.delegation_percentage || 0) - (a.delegation_percentage || 0))
-      .slice(0, 5);
+      .sort((a, b) => (b.delegation_percentage || 0) - (a.delegation_percentage || 0));
   }, [tokensWithDelegation]);
+  
+  // Создаем хэш-таблицу ранжирования
+  const rankMap = useMemo(() => {
+    const map = new Map<string, number>();
+    sortedTokens.forEach((token, index) => {
+      map.set(token.symbol, index + 1);
+    });
+    return map;
+  }, [sortedTokens]);
+
+  const topDelegatedTokens = useMemo(() => {
+    return sortedTokens.slice(0, 5);
+  }, [sortedTokens]);
 
   const averageDelegation = useMemo(() => {
     if (tokensWithDelegation.length === 0) return 0;
@@ -52,11 +65,21 @@ export function StakingCard({ tokens, darkMode = false }: StakingCardProps) {
           Топ по делегированию
         </div>
         <div className="space-y-3">
-          {topDelegatedTokens.map((token) => (
+          {topDelegatedTokens.map((token, index) => (
             <div key={token.id} className="flex items-center justify-between">
-              <span className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                {token.symbol}
-              </span>
+              <div className="flex items-center">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 ${
+                  index === 0 ? 'bg-green-100 text-green-700' : 
+                  index === 1 ? 'bg-green-50 text-green-600' :
+                  index === 2 ? 'bg-emerald-50 text-emerald-600' :
+                  'bg-gray-100 text-gray-600'
+                }`}>
+                  <span className="text-xs font-semibold">{rankMap.get(token.symbol)}</span>
+                </div>
+                <span className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  {token.symbol}
+                </span>
+              </div>
               <div className="w-1/2">
                 <div className="flex items-center">
                   <div className="w-full bg-gray-200 rounded-full h-2.5 mr-2">

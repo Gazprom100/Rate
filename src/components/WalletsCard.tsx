@@ -1,15 +1,15 @@
 import React, { useMemo } from 'react';
 import { Token } from '@/utils/decimalApi';
 
-interface ReservesCardProps {
+interface WalletsCardProps {
   tokens: Token[];
   darkMode?: boolean;
 }
 
-export function ReservesCard({ tokens, darkMode = false }: ReservesCardProps) {
-  // Сортируем все токены по резерву
+export function WalletsCard({ tokens, darkMode = false }: WalletsCardProps) {
+  // Сортируем все токены по количеству кошельков
   const sortedTokens = useMemo(() => {
-    return [...tokens].sort((a, b) => b.reserve - a.reserve);
+    return [...tokens].sort((a, b) => b.wallets_count - a.wallets_count);
   }, [tokens]);
   
   // Создаем хэш-таблицу ранжирования
@@ -21,54 +21,60 @@ export function ReservesCard({ tokens, darkMode = false }: ReservesCardProps) {
     return map;
   }, [sortedTokens]);
 
-  const topReserveTokens = useMemo(() => {
+  // Топ-5 токенов по количеству кошельков
+  const topTokens = useMemo(() => {
     return sortedTokens.slice(0, 5);
   }, [sortedTokens]);
 
-  const totalReserve = useMemo(() => {
-    return tokens.reduce((acc, token) => acc + token.reserve, 0);
+  // Общее количество кошельков в сети
+  const totalWallets = useMemo(() => {
+    // Берем максимальное количество кошельков как ориентировочное общее количество
+    // Обычно токен DEL есть на большинстве кошельков
+    const maxWallets = Math.max(...tokens.map(t => t.wallets_count));
+    return maxWallets;
   }, [tokens]);
 
   const formatNumber = (num: number) => {
+    if (!num || isNaN(num)) return '0';
     if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
     if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
     if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
-    return num.toFixed(2);
+    return num.toFixed(0);
   };
 
-  const calculatePercentage = (value: number) => {
-    return totalReserve > 0 ? (value / totalReserve) * 100 : 0;
+  const calculatePercentage = (walletCount: number) => {
+    return totalWallets > 0 ? (walletCount / totalWallets) * 100 : 0;
   };
 
   return (
     <div className={`bg-${darkMode ? 'gray-800' : 'white'} rounded-lg shadow p-6`}>
       <h2 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-        Резервы DEL
+        Распространение
       </h2>
       
       <div className="mb-6">
         <div className={`text-sm mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-          Общий резерв DEL
+          Всего кошельков в сети
         </div>
         <div className="flex items-center">
           <span className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            {formatNumber(totalReserve)}
+            {formatNumber(totalWallets)}
           </span>
         </div>
       </div>
       
       <div>
         <div className={`text-sm mb-3 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-          Топ токенов по резерву
+          Топ токенов по кошелькам
         </div>
         <div className="space-y-3">
-          {topReserveTokens.map((token, index) => (
+          {topTokens.map((token, index) => (
             <div key={token.id} className="flex items-center justify-between">
               <div className="flex items-center">
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 ${
-                  index === 0 ? 'bg-indigo-100 text-indigo-700' : 
-                  index === 1 ? 'bg-indigo-50 text-indigo-600' :
-                  index === 2 ? 'bg-blue-50 text-blue-600' :
+                  index === 0 ? 'bg-purple-100 text-purple-700' : 
+                  index === 1 ? 'bg-purple-50 text-purple-600' :
+                  index === 2 ? 'bg-violet-50 text-violet-600' :
                   'bg-gray-100 text-gray-600'
                 }`}>
                   <span className="text-xs font-semibold">{rankMap.get(token.symbol)}</span>
@@ -81,13 +87,16 @@ export function ReservesCard({ tokens, darkMode = false }: ReservesCardProps) {
                 <div className="flex items-center">
                   <div className="w-full bg-gray-200 rounded-full h-2.5 mr-2">
                     <div 
-                      className="bg-indigo-600 h-2.5 rounded-full" 
-                      style={{ width: `${Math.min(100, calculatePercentage(token.reserve))}%` }}
+                      className="bg-purple-600 h-2.5 rounded-full" 
+                      style={{ width: `${Math.min(100, calculatePercentage(token.wallets_count))}%` }}
                     ></div>
                   </div>
                   <span className={`text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                    {formatNumber(token.reserve)}
+                    {formatNumber(token.wallets_count)}
                   </span>
+                </div>
+                <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} mt-1`}>
+                  {calculatePercentage(token.wallets_count).toFixed(2)}% кошельков
                 </div>
               </div>
             </div>
@@ -97,7 +106,7 @@ export function ReservesCard({ tokens, darkMode = false }: ReservesCardProps) {
       
       <div className={`mt-4 pt-4 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
         <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-          <p>Резерв показывает количество DEL, обеспечивающих токен.</p>
+          <p>Количество кошельков, на которых есть токен на балансе или в делегировании.</p>
         </div>
       </div>
     </div>

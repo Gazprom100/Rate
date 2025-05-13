@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Token, convertFromRawValue } from '@/utils/decimalApi';
 
 interface TopTokensCardProps {
@@ -43,36 +43,53 @@ export function TopTokensCard({ tokens, darkMode = false }: TopTokensCardProps) 
   };
 
   // Пересчитываем капитализацию для каждого токена
-  const tokensWithMarketCap = tokens.map(token => {
-    // Получаем эффективную цену
-    let effectivePrice = token.price;
-    if ((!effectivePrice || effectivePrice < 0.00000001) && token.raw_price) {
-      try {
-        effectivePrice = convertFromRawValue(token.raw_price);
-        console.log(`Token ${token.symbol} price from raw: ${effectivePrice}`);
-      } catch (e) {
-        console.error('Error converting raw price for market cap:', e);
+  const tokensWithMarketCap = useMemo(() => {
+    return tokens.map(token => {
+      // Получаем эффективную цену
+      let effectivePrice = token.price;
+      if ((!effectivePrice || effectivePrice < 0.00000001) && token.raw_price) {
+        try {
+          effectivePrice = convertFromRawValue(token.raw_price);
+        } catch (e) {
+          console.error('Error converting raw price for market cap:', e);
+        }
       }
-    }
-    
-    // Получаем эффективный current_supply
-    let effectiveSupply = token.current_supply || 0;
-    if ((!effectiveSupply || effectiveSupply < 0.00000001) && token.raw_current_supply) {
-      try {
-        effectiveSupply = convertFromRawValue(token.raw_current_supply);
-      } catch (e) {
-        console.error('Error converting raw supply for market cap:', e);
-      }
-    }
       
-    return {
-      ...token,
-      market_cap: effectivePrice * effectiveSupply
-    };
-  });
+      // Получаем эффективный current_supply
+      let effectiveSupply = token.current_supply || 0;
+      if ((!effectiveSupply || effectiveSupply < 0.00000001) && token.raw_current_supply) {
+        try {
+          effectiveSupply = convertFromRawValue(token.raw_current_supply);
+        } catch (e) {
+          console.error('Error converting raw supply for market cap:', e);
+        }
+      }
+        
+      return {
+        ...token,
+        market_cap: effectivePrice * effectiveSupply
+      };
+    });
+  }, [tokens]);
 
   // Сортируем токены по капитализации
-  const sortedTokens = [...tokensWithMarketCap].sort((a, b) => (b.market_cap || 0) - (a.market_cap || 0));
+  const sortedTokens = useMemo(() => {
+    return [...tokensWithMarketCap].sort((a, b) => (b.market_cap || 0) - (a.market_cap || 0));
+  }, [tokensWithMarketCap]);
+
+  // Создаем хэш-таблицу ранжирования для всех токенов
+  const rankMap = useMemo(() => {
+    const map = new Map<string, number>();
+    sortedTokens.forEach((token, index) => {
+      map.set(token.symbol, index + 1);
+    });
+    return map;
+  }, [sortedTokens]);
+
+  // Получаем топ-5 токенов для отображения
+  const topTokens = useMemo(() => {
+    return sortedTokens.slice(0, 5);
+  }, [sortedTokens]);
 
   return (
     <div className={`bg-${darkMode ? 'gray-800' : 'white'} rounded-lg shadow p-6`}>
@@ -81,7 +98,7 @@ export function TopTokensCard({ tokens, darkMode = false }: TopTokensCardProps) 
       </h2>
       
       <div className="space-y-4">
-        {sortedTokens.map((token, index) => (
+        {topTokens.map((token, index) => (
           <div key={token.id} className="flex items-center justify-between">
             <div className="flex items-center">
               <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 ${
@@ -90,7 +107,7 @@ export function TopTokensCard({ tokens, darkMode = false }: TopTokensCardProps) 
                 index === 2 ? 'bg-amber-100 text-amber-700' :
                 'bg-blue-100 text-blue-700'
               }`}>
-                <span className="text-xs font-semibold">{index + 1}</span>
+                <span className="text-xs font-semibold">{rankMap.get(token.symbol)}</span>
               </div>
               <div>
                 <div className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
