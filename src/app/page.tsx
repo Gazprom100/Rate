@@ -10,9 +10,10 @@ import { ReservesCard } from '@/components/ReservesCard';
 import { TopTokensCard } from '@/components/TopTokensCard';
 import { TokenPieChart } from '@/components/TokenPieChart';
 import { TokenBarChart } from '@/components/TokenBarChart';
-import { StakingCard } from '@/components/StakingCard';
+import { SupplyCard } from '@/components/SupplyCard';
 import { Pagination } from '@/components/Pagination';
 import { SearchFilter } from '@/components/SearchFilter';
+import { WalletsTopCard } from '@/components/WalletsTopCard';
 
 const timeFrames = [
   { label: '24H', value: '24h' },
@@ -231,27 +232,32 @@ export default function Home() {
         </header>
 
         {/* Метрики и карточки */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <PriceChangeCard 
             tokens={topTokensByMarketCap} 
-            timeFrame={selectedTimeFrame} 
-            priceChanges={priceChanges}
+            priceChanges={priceChanges} 
+            timeFrame={selectedTimeFrame}
+            loading={loading} 
             darkMode={darkMode}
           />
-          <DelegationCard 
-            tokens={tokens} 
+          <DelegationCard
+            tokens={tokens}
             darkMode={darkMode}
           />
-          <StakingCard 
-            tokens={tokens} 
-            darkMode={darkMode}
-          />
-          <ReservesCard 
-            tokens={tokens} 
+          <SupplyCard
+            tokens={tokens}
             darkMode={darkMode}
           />
           <TopTokensCard 
             tokens={topTokensByMarketCap} 
+            darkMode={darkMode}
+          />
+        </div>
+
+        {/* Дополнительные карточки */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <WalletsTopCard
+            tokens={tokens}
             darkMode={darkMode}
           />
         </div>

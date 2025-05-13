@@ -22,7 +22,7 @@ export function ReservesCard({ tokens, darkMode = false }: ReservesCardProps) {
   }, [sortedTokens]);
 
   const topReserveTokens = useMemo(() => {
-    return sortedTokens.slice(0, 5);
+    return sortedTokens.slice(0, 10);
   }, [sortedTokens]);
 
   const totalReserve = useMemo(() => {
@@ -42,9 +42,14 @@ export function ReservesCard({ tokens, darkMode = false }: ReservesCardProps) {
 
   return (
     <div className={`bg-${darkMode ? 'gray-800' : 'white'} rounded-lg shadow p-6`}>
-      <h2 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-        Резервы DEL
-      </h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+          ТОП-10 по резервам DEL
+        </h2>
+        <div className={`text-xs ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} px-3 py-1 rounded-full`}>
+          {tokens.length} токенов
+        </div>
+      </div>
       
       <div className="mb-6">
         <div className={`text-sm mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -61,7 +66,7 @@ export function ReservesCard({ tokens, darkMode = false }: ReservesCardProps) {
         <div className={`text-sm mb-3 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
           Топ токенов по резерву
         </div>
-        <div className="space-y-3">
+        <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
           {topReserveTokens.map((token, index) => (
             <div key={token.id} className="flex items-center justify-between">
               <div className="flex items-center">

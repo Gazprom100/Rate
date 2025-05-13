@@ -27,9 +27,9 @@ export function PriceChangeCard({ tokens, timeFrame, priceChanges, darkMode = fa
     return map;
   }, [sortedTokens]);
 
-  // Получаем топ-5 токенов для отображения
+  // Получаем топ-10 токенов для отображения
   const topTokens = useMemo(() => {
-    return sortedTokens.slice(0, 5);
+    return sortedTokens.slice(0, 10);
   }, [sortedTokens]);
 
   const getPriceChangeClassName = (change: number) => {
@@ -57,10 +57,15 @@ export function PriceChangeCard({ tokens, timeFrame, priceChanges, darkMode = fa
 
   return (
     <div className={`bg-${darkMode ? 'gray-800' : 'white'} rounded-lg shadow p-6`}>
-      <h2 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-        Изменение цены ({getTimeFrameLabel(timeFrame)})
-      </h2>
-      <div className="space-y-4">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+          ТОП-10 по изменению цены
+        </h2>
+        <div className={`text-xs ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} px-3 py-1 rounded-full`}>
+          {timeFrame.toUpperCase()}
+        </div>
+      </div>
+      <div className="space-y-4 max-h-[450px] overflow-y-auto pr-1">
         {topTokens.map((token, index) => {
           const change = priceChanges[token.symbol]?.[timeFrame] || 0;
           return (
