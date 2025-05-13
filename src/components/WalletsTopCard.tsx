@@ -28,10 +28,63 @@ export function WalletsTopCard({ tokens, darkMode = false }: WalletsTopCardProps
   }, [sortedTokens]);
 
   // Общее количество кошельков в сети (максимальное значение как приблизительная оценка)
+  // Обычно это количество кошельков с DEL (основной токен сети)
   const totalWallets = useMemo(() => {
     if (tokensWithWallets.length === 0) return 0;
+    
+    // Находим токен DEL, если он есть
+    const delToken = tokensWithWallets.find(t => t.symbol === 'DEL');
+    if (delToken) {
+      return delToken.wallets_count;
+    }
+    
+    // Иначе берем максимальное значение как приблизительную оценку
     return Math.max(...tokensWithWallets.map(t => t.wallets_count));
   }, [tokensWithWallets]);
+  
+  // Оценка распределения делегаторов и держателей
+  const walletDistributionStats = useMemo(() => {
+    // Выбираем токены, у которых есть данные о делегировании
+    const tokensWithDelegation = topTokens.filter(token => 
+      token.delegation_percentage !== undefined && 
+      !isNaN(token.delegation_percentage) &&
+      token.current_supply !== undefined
+    );
+    
+    if (tokensWithDelegation.length === 0) {
+      return {
+        hasDelegationData: false,
+        estimatedDelegators: 0,
+        estimatedHolders: 0,
+        estimatedOverlap: 0
+      };
+    }
+    
+    // Находим средний процент делегирования среди топ-токенов
+    const avgDelegationPercentage = tokensWithDelegation.reduce(
+      (sum, token) => sum + (token.delegation_percentage || 0), 
+      0
+    ) / tokensWithDelegation.length;
+    
+    // Оценка количества кошельков, которые занимаются делегированием
+    // (Очень приблизительная, так как нет точных данных)
+    const estimatedDelegators = Math.floor(totalWallets * (avgDelegationPercentage / 100) * 0.5);
+    
+    // Оценка количества кошельков, которые просто держат токены
+    const estimatedHolders = totalWallets - estimatedDelegators;
+    
+    // Оценка количества кошельков, которые и делегируют, и держат токены
+    // (Допускаем, что примерно 30% делегаторов также держат токены на балансе)
+    const estimatedOverlap = Math.floor(estimatedDelegators * 0.3);
+    
+    return {
+      hasDelegationData: true,
+      avgDelegationPercentage,
+      estimatedDelegators,
+      estimatedHolders,
+      estimatedOverlap
+    };
+  }, [topTokens, totalWallets]);
 
   // Форматирование числа с суффиксом для удобочитаемого отображения
   const formatNumber = (num: number) => {
@@ -51,14 +104,52 @@ export function WalletsTopCard({ tokens, darkMode = false }: WalletsTopCardProps
     <div className={`bg-${darkMode ? 'gray-800' : 'white'} rounded-lg shadow p-6`}>
       <div className="flex justify-between items-center mb-4">
         <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-          Топ-10 по кошелькам
+          ТОП-10 по кошелькам
         </h2>
         <div className={`text-xs ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} px-3 py-1 rounded-full`}>
           {tokensWithWallets.length} токенов
         </div>
       </div>
       
-      <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+      {/* Общая статистика по кошелькам */}
+      <div className={`mb-4 p-3 rounded ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+        <div className={`text-sm mb-1 ${darkMode ? 'text-white' : 'text-gray-700'} font-medium`}>
+          Всего кошельков в сети
+        </div>
+        <div className="flex items-center mb-2">
+          <span className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+            {formatNumber(totalWallets)}
+          </span>
+          <span className={`ml-2 text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+            уникальных адресов
+          </span>
+        </div>
+        
+        {walletDistributionStats.hasDelegationData && (
+          <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} mt-1`}>
+            <div className="flex justify-between items-center">
+              <span>Держатели балансов:</span>
+              <span className="font-medium">
+                {formatNumber(walletDistributionStats.estimatedHolders)}
+              </span>
+            </div>
+            <div className="flex justify-between items-center mt-0.5">
+              <span>Делегаторы:</span>
+              <span className="font-medium">
+                {formatNumber(walletDistributionStats.estimatedDelegators)}
+              </span>
+            </div>
+            <div className="flex justify-between items-center mt-0.5">
+              <span>Пересечение (оценка):</span>
+              <span className="font-medium">
+                {formatNumber(walletDistributionStats.estimatedOverlap)}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+      
+      <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
         {topTokens.map((token, index) => (
           <div key={token.id} className="flex items-center justify-between">
             <div className="flex items-center">
@@ -96,7 +187,11 @@ export function WalletsTopCard({ tokens, darkMode = false }: WalletsTopCardProps
       
       <div className={`mt-4 pt-4 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
         <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-          <p>Количество кошельков, имеющих токен на балансе или в делегировании</p>
+          <p>Показано общее количество уникальных адресов, имеющих токен на балансе или в делегировании.</p>
+          <p className="mt-1">Если адрес имеет токен и на балансе, и в делегировании, он учитывается один раз.</p>
+          {walletDistributionStats.hasDelegationData && (
+            <p className="mt-1">Распределение кошельков между держателями и делегаторами - ориентировочная оценка.</p>
+          )}
         </div>
       </div>
     </div>
