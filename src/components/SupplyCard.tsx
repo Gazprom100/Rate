@@ -1,5 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Token } from '@/utils/decimalApi';
+import { TokenModal } from './TokenModal';
 
 interface SupplyCardProps {
   tokens: Token[];
@@ -7,6 +8,8 @@ interface SupplyCardProps {
 }
 
 export function SupplyCard({ tokens, darkMode = false }: SupplyCardProps) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   // Отбираем токены с корректными данными о выпуске
   const tokensWithSupply = useMemo(() => {
     return tokens.filter(token => 
@@ -50,12 +53,12 @@ export function SupplyCard({ tokens, darkMode = false }: SupplyCardProps) {
   const weightedAverageSupplyPercentage = useMemo(() => {
     if (tokensWithPercentage.length === 0) return 0;
     
-    // Суммируем (процент выпуска * максимальный выпуск) для всех токенов
+    // Суммируем (процент выпуска * максимальную эмиссию) для всех токенов
     const weightedSum = tokensWithPercentage.reduce((acc, token) => {
       return acc + token.supply_percentage * (token.max_supply || 0);
     }, 0);
     
-    // Суммируем максимальную эмиссию всех токенов
+    // Суммируем общую максимальную эмиссию всех токенов
     const totalMaxSupply = tokensWithPercentage.reduce((acc, token) => {
       return acc + (token.max_supply || 0);
     }, 0);
@@ -72,6 +75,18 @@ export function SupplyCard({ tokens, darkMode = false }: SupplyCardProps) {
     if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
     return num.toFixed(2);
   };
+  
+  // Функция форматирования значения для модального окна
+  const formatSupplyValue = (value: any) => {
+    // value здесь будет supply_percentage
+    const numValue = Number(value) || 0;
+    return `${numValue.toFixed(2)}%`;
+  };
+
+  // Функция для открытия модального окна
+  const openModal = () => {
+    setIsModalOpen(true);
+  };
 
   return (
     <div className={`bg-${darkMode ? 'gray-800' : 'white'} rounded-lg shadow p-6`}>
@@ -79,8 +94,16 @@ export function SupplyCard({ tokens, darkMode = false }: SupplyCardProps) {
         <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
           ТОП-10 по эмиссии
         </h2>
-        <div className={`text-xs ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} px-3 py-1 rounded-full`}>
-          {tokensWithPercentage.length} токенов
+        <div className="flex items-center space-x-2">
+          <div className={`text-xs ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} px-3 py-1 rounded-full`}>
+            {tokensWithPercentage.length} токенов
+          </div>
+          <button 
+            onClick={openModal}
+            className={`text-xs ${darkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white px-3 py-1 rounded-full transition-colors`}
+          >
+            100 токенов
+          </button>
         </div>
       </div>
       
@@ -141,6 +164,18 @@ export function SupplyCard({ tokens, darkMode = false }: SupplyCardProps) {
           <p>Отношение текущего выпуска токенов (Current Supply) к максимальному (Max Supply).</p>
         </div>
       </div>
+      
+      {/* Модальное окно с полным списком токенов */}
+      <TokenModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        tokens={sortedTokens}
+        title="Рейтинг токенов по проценту эмиссии"
+        metricName="Процент выпуска"
+        metricKey="supply_percentage"
+        formatValue={formatSupplyValue}
+        darkMode={darkMode}
+      />
     </div>
   );
 } 

@@ -1,5 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Token } from '@/utils/decimalApi';
+import { TokenModal } from './TokenModal';
 
 interface DelegationCardProps {
   tokens: Token[];
@@ -7,6 +8,8 @@ interface DelegationCardProps {
 }
 
 export function DelegationCard({ tokens, darkMode = false }: DelegationCardProps) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   // Отбираем токены с корректными данными о делегировании
   const tokensWithDelegation = useMemo(() => {
     return tokens.filter(token => 
@@ -53,6 +56,17 @@ export function DelegationCard({ tokens, darkMode = false }: DelegationCardProps
     // Возвращаем средневзвешенное значение
     return totalSupply > 0 ? weightedSum / totalSupply : 0;
   }, [tokensWithDelegation]);
+  
+  // Функция форматирования значения для модального окна
+  const formatDelegationValue = (value: any) => {
+    const numValue = Number(value) || 0;
+    return `${numValue.toFixed(2)}%`;
+  };
+
+  // Функция для открытия модального окна
+  const openModal = () => {
+    setIsModalOpen(true);
+  };
 
   return (
     <div className={`bg-${darkMode ? 'gray-800' : 'white'} rounded-lg shadow p-6`}>
@@ -60,8 +74,16 @@ export function DelegationCard({ tokens, darkMode = false }: DelegationCardProps
         <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
           ТОП-10 по делегированию
         </h2>
-        <div className={`text-xs ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} px-3 py-1 rounded-full`}>
-          {tokensWithDelegation.length} токенов
+        <div className="flex items-center space-x-2">
+          <div className={`text-xs ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} px-3 py-1 rounded-full`}>
+            {tokensWithDelegation.length} токенов
+          </div>
+          <button 
+            onClick={openModal}
+            className={`text-xs ${darkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white px-3 py-1 rounded-full transition-colors`}
+          >
+            100 токенов
+          </button>
         </div>
       </div>
       
@@ -122,6 +144,18 @@ export function DelegationCard({ tokens, darkMode = false }: DelegationCardProps
           <p>Процент делегированных (застейканных) токенов от текущей эмиссии.</p>
         </div>
       </div>
+      
+      {/* Модальное окно с полным списком токенов */}
+      <TokenModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        tokens={sortedTokens}
+        title="Рейтинг токенов по делегированию"
+        metricName="Делегировано"
+        metricKey="delegation_percentage"
+        formatValue={formatDelegationValue}
+        darkMode={darkMode}
+      />
     </div>
   );
 } 

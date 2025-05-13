@@ -1,5 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Token } from '@/utils/decimalApi';
+import { TokenModal } from './TokenModal';
 
 interface PriceChangeCardProps {
   tokens: Token[];
@@ -9,7 +10,14 @@ interface PriceChangeCardProps {
   darkMode?: boolean;
 }
 
+// Расширенный тип токена с дополнительным свойством для изменения цены
+interface TokenWithPriceChange extends Token {
+  price_change: number;
+}
+
 export function PriceChangeCard({ tokens, timeFrame, priceChanges, loading = false, darkMode = false }: PriceChangeCardProps) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  
   // Сортируем только токены с положительным изменением цены
   const sortedTokens = useMemo(() => {
     return [...tokens]
@@ -38,6 +46,14 @@ export function PriceChangeCard({ tokens, timeFrame, priceChanges, loading = fal
     return sortedTokens.slice(0, 10);
   }, [sortedTokens]);
 
+  // Добавляем свойство price_change временно к токенам для отображения в модальном окне
+  const tokensWithChange = useMemo(() => {
+    return sortedTokens.map(token => ({
+      ...token,
+      price_change: priceChanges[token.symbol]?.[timeFrame] || 0
+    })) as TokenWithPriceChange[];
+  }, [sortedTokens, timeFrame, priceChanges]);
+
   const getPriceChangeClassName = (change: number) => {
     if (change > 0) return darkMode ? 'text-green-400' : 'text-green-600';
     if (change < 0) return darkMode ? 'text-red-400' : 'text-red-600';
@@ -60,6 +76,20 @@ export function PriceChangeCard({ tokens, timeFrame, priceChanges, loading = fal
       default: return tf;
     }
   };
+  
+  // Функция для прокрутки к таблице токенов
+  const scrollToTokenTable = () => {
+    // Находим элемент таблицы по id и прокручиваем к нему
+    const tokenTable = document.getElementById('token-table');
+    if (tokenTable) {
+      tokenTable.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  // Функция для открытия модального окна
+  const openModal = () => {
+    setIsModalOpen(true);
+  };
 
   return (
     <div className={`bg-${darkMode ? 'gray-800' : 'white'} rounded-lg shadow p-6`}>
@@ -67,8 +97,16 @@ export function PriceChangeCard({ tokens, timeFrame, priceChanges, loading = fal
         <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
           ТОП-10 по росту цены
         </h2>
-        <div className={`text-xs ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} px-3 py-1 rounded-full`}>
-          {timeFrame.toUpperCase()}
+        <div className="flex items-center space-x-2">
+          <div className={`text-xs ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} px-3 py-1 rounded-full`}>
+            {timeFrame.toUpperCase()}
+          </div>
+          <button 
+            onClick={openModal}
+            className={`text-xs ${darkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white px-3 py-1 rounded-full transition-colors`}
+          >
+            100 токенов
+          </button>
         </div>
       </div>
       <div className="space-y-4 max-h-[450px] overflow-y-auto pr-1">
@@ -109,6 +147,24 @@ export function PriceChangeCard({ tokens, timeFrame, priceChanges, loading = fal
           <p>Показано изменение цены за выбранный период. Отображаются только растущие токены.</p>
         </div>
       </div>
+      
+      {/* Модальное окно с полным списком токенов */}
+      <TokenModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        tokens={sortedTokens}
+        title={`Рейтинг токенов по изменению цены (${getTimeFrameLabel(timeFrame)})`}
+        metricName="Изменение цены"
+        metricKey="symbol"
+        formatValue={(value: any, token?: Token) => {
+          if (!token) return '0%';
+          const change = priceChanges[token.symbol]?.[timeFrame] || 0;
+          const icon = change > 0 ? '↗' : change < 0 ? '↘' : '→';
+          const prefix = change > 0 ? '+' : '';
+          return `${icon} ${prefix}${change.toFixed(2)}%`;
+        }}
+        darkMode={darkMode}
+      />
     </div>
   );
 }

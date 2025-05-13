@@ -1,5 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Token } from '@/utils/decimalApi';
+import { TokenModal } from './TokenModal';
 
 interface ReservesCardProps {
   tokens: Token[];
@@ -7,6 +8,8 @@ interface ReservesCardProps {
 }
 
 export function ReservesCard({ tokens, darkMode = false }: ReservesCardProps) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   // Отбираем токены с корректными данными о резервах
   const tokensWithReserves = useMemo(() => {
     return tokens.filter(token => 
@@ -53,6 +56,17 @@ export function ReservesCard({ tokens, darkMode = false }: ReservesCardProps) {
   const calculatePercentage = (value: number) => {
     return totalReserve > 0 ? (value / totalReserve) * 100 : 0;
   };
+  
+  // Функция форматирования значения для модального окна
+  const formatReserveValue = (value: any) => {
+    const numValue = Number(value) || 0;
+    return `${formatNumber(numValue)} DEL (${calculatePercentage(numValue).toFixed(1)}%)`;
+  };
+
+  // Функция для открытия модального окна
+  const openModal = () => {
+    setIsModalOpen(true);
+  };
 
   return (
     <div className={`bg-${darkMode ? 'gray-800' : 'white'} rounded-lg shadow p-6`}>
@@ -60,8 +74,16 @@ export function ReservesCard({ tokens, darkMode = false }: ReservesCardProps) {
         <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
           ТОП-10 по резервам DEL
         </h2>
-        <div className={`text-xs ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} px-3 py-1 rounded-full`}>
-          {tokensWithReserves.length} токенов
+        <div className="flex items-center space-x-2">
+          <div className={`text-xs ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} px-3 py-1 rounded-full`}>
+            {tokensWithReserves.length} токенов
+          </div>
+          <button 
+            onClick={openModal}
+            className={`text-xs ${darkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white px-3 py-1 rounded-full transition-colors`}
+          >
+            100 токенов
+          </button>
         </div>
       </div>
       
@@ -122,6 +144,18 @@ export function ReservesCard({ tokens, darkMode = false }: ReservesCardProps) {
           <p>Резерв показывает количество DEL, обеспечивающих токен.</p>
         </div>
       </div>
+      
+      {/* Модальное окно с полным списком токенов */}
+      <TokenModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        tokens={sortedTokens}
+        title="Рейтинг токенов по резервам DEL"
+        metricName="Резерв"
+        metricKey="reserve"
+        formatValue={formatReserveValue}
+        darkMode={darkMode}
+      />
     </div>
   );
 } 
