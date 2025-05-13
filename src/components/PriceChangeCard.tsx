@@ -5,6 +5,7 @@ interface PriceChangeCardProps {
   tokens: Token[];
   timeFrame: string;
   priceChanges: Record<string, Record<string, number>>;
+  loading?: boolean;
   darkMode?: boolean;
 }
 
