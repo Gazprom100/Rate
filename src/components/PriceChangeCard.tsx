@@ -97,15 +97,12 @@ export function PriceChangeCard({ tokens, timeFrame, priceChanges, loading = fal
         <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
           ТОП-10 по росту цены
         </h2>
-        <div className="flex items-center space-x-2">
-          <div className={`text-xs ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} px-3 py-1 rounded-full`}>
-            {timeFrame.toUpperCase()}
-          </div>
+        <div className="flex items-center">
           <button 
             onClick={openModal}
             className={`text-xs ${darkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white px-3 py-1 rounded-full transition-colors`}
           >
-            100 токенов
+            {sortedTokens.length} токенов | {timeFrame.toUpperCase()}
           </button>
         </div>
       </div>
