@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pie } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -21,33 +21,60 @@ interface TokenPieChartProps {
 }
 
 export function TokenPieChart({ tokens, metric, darkMode = false }: TokenPieChartProps) {
-  // Filter out tokens that don't have the selected metric
-  const validTokens = tokens.filter(token => token[metric] !== undefined);
-  
-  // Background colors for pie slices
-  const backgroundColors = [
-    'rgba(255, 99, 132, 0.7)',
-    'rgba(54, 162, 235, 0.7)',
-    'rgba(255, 206, 86, 0.7)',
-    'rgba(75, 192, 192, 0.7)',
-    'rgba(153, 102, 255, 0.7)',
-    'rgba(255, 159, 64, 0.7)',
-    'rgba(199, 199, 199, 0.7)',
-    'rgba(83, 102, 255, 0.7)',
-    'rgba(40, 159, 64, 0.7)',
-    'rgba(210, 99, 132, 0.7)',
-  ];
-  
-  // Prepare data for the chart
-  const data = {
-    labels: validTokens.map(token => token.symbol),
-    datasets: [
-      {
-        data: validTokens.map(token => token[metric] as number),
-        backgroundColor: backgroundColors.slice(0, validTokens.length),
-      },
-    ],
-  };
+  // Используем useMemo для оптимизации производительности
+  const chartData = useMemo(() => {
+    // Filter out tokens that don't have the selected metric
+    const validTokens = tokens.filter(token => token[metric] !== undefined);
+    
+    // Сортируем токены по убыванию значения метрики
+    const sortedTokens = [...validTokens].sort((a, b) => {
+      const aValue = a[metric] as number || 0;
+      const bValue = b[metric] as number || 0;
+      return bValue - aValue;
+    });
+    
+    // Ограничиваем количество элементов до 15 для круговой диаграммы
+    // Остальные объединяем в категорию "Другие"
+    const topTokens = sortedTokens.slice(0, 15);
+    const otherTokens = sortedTokens.slice(15);
+    
+    let labels: string[] = [];
+    let values: number[] = [];
+    
+    // Добавляем топ токены
+    labels = topTokens.map(token => token.symbol);
+    values = topTokens.map(token => token[metric] as number);
+    
+    // Объединяем оставшиеся токены в "Другие", если их больше 0
+    if (otherTokens.length > 0) {
+      const otherSum = otherTokens.reduce((sum, token) => sum + (token[metric] as number || 0), 0);
+      labels.push('Другие');
+      values.push(otherSum);
+    }
+    
+    // Генерируем цвета для диаграммы
+    const backgroundColors = [];
+    const borderColors = [];
+    
+    for (let i = 0; i < labels.length; i++) {
+      const hue = (i * 137.5) % 360; // Золотое сечение для равномерного распределения цветов
+      backgroundColors.push(`hsla(${hue}, 70%, 60%, 0.7)`);
+      borderColors.push(`hsla(${hue}, 70%, 50%, 1)`);
+    }
+    
+    // Prepare data for the chart
+    return {
+      labels,
+      datasets: [
+        {
+          data: values,
+          backgroundColor: backgroundColors,
+          borderColor: borderColors,
+          borderWidth: 1,
+        },
+      ],
+    };
+  }, [tokens, metric]);
 
   const options = {
     responsive: true,
@@ -66,7 +93,7 @@ export function TokenPieChart({ tokens, metric, darkMode = false }: TokenPieChar
       },
       title: {
         display: true,
-        text: `${getMetricLabel(metric)} - Топ ${tokens.length} токенов`,
+        text: `${getMetricLabel(metric)} - Топ 15 токенов + Другие`,
         color: darkMode ? '#fff' : '#333',
         font: {
           size: 16,
@@ -97,7 +124,7 @@ export function TokenPieChart({ tokens, metric, darkMode = false }: TokenPieChar
 
   return (
     <div className="w-full h-80">
-      <Pie options={options} data={data} />
+      <Pie options={options} data={chartData} />
     </div>
   );
 }

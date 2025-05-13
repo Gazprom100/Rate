@@ -316,7 +316,7 @@ export default function Home() {
           <div className="mt-4">
             {chartType === 'line' && (
               <TokenChart 
-                tokens={topTokensByMarketCap} 
+                tokens={filteredTokens} 
                 timeFrame={selectedTimeFrame} 
                 metric={selectedMetric as keyof Token} 
                 darkMode={darkMode}
@@ -324,14 +324,14 @@ export default function Home() {
             )}
             {chartType === 'bar' && (
               <TokenBarChart 
-                tokens={topTokensByMarketCap} 
+                tokens={filteredTokens} 
                 metric={selectedMetric as keyof Token} 
                 darkMode={darkMode}
               />
             )}
             {chartType === 'pie' && (
               <TokenPieChart 
-                tokens={topTokensByMarketCap} 
+                tokens={filteredTokens} 
                 metric={selectedMetric as keyof Token} 
                 darkMode={darkMode}
               />

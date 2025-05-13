@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -27,34 +27,46 @@ interface TokenBarChartProps {
 }
 
 export function TokenBarChart({ tokens, metric, darkMode = false }: TokenBarChartProps) {
-  // Filter out tokens that don't have the selected metric
-  const validTokens = tokens.filter(token => token[metric] !== undefined);
-  
-  // Background colors for bars
-  const backgroundColors = [
-    'rgba(255, 99, 132, 0.7)',
-    'rgba(54, 162, 235, 0.7)',
-    'rgba(255, 206, 86, 0.7)',
-    'rgba(75, 192, 192, 0.7)',
-    'rgba(153, 102, 255, 0.7)',
-    'rgba(255, 159, 64, 0.7)',
-    'rgba(199, 199, 199, 0.7)',
-    'rgba(83, 102, 255, 0.7)',
-    'rgba(40, 159, 64, 0.7)',
-    'rgba(210, 99, 132, 0.7)',
-  ];
-  
-  // Prepare data for the chart
-  const data = {
-    labels: validTokens.map(token => token.symbol),
-    datasets: [
-      {
-        label: getMetricLabel(metric),
-        data: validTokens.map(token => token[metric] as number),
-        backgroundColor: backgroundColors.slice(0, validTokens.length),
-      },
-    ],
-  };
+  // Используем useMemo для кэширования обработанных данных
+  const chartData = useMemo(() => {
+    // Filter out tokens that don't have the selected metric
+    const validTokens = tokens.filter(token => token[metric] !== undefined);
+    
+    // Сортируем токены по убыванию метрики
+    const sortedTokens = [...validTokens].sort((a, b) => {
+      const aValue = a[metric] as number || 0;
+      const bValue = b[metric] as number || 0;
+      return bValue - aValue;
+    });
+    
+    // Ограничиваем количество токенов до 50 для лучшей читаемости
+    const limitedTokens = sortedTokens.slice(0, 50);
+    
+    // Background colors for bars
+    const backgroundColors = [];
+    const borderColors = [];
+    
+    // Создаем больше цветов, если необходимо
+    for (let i = 0; i < limitedTokens.length; i++) {
+      const hue = (i * 137.5) % 360; // Золотое сечение для равномерного распределения цветов
+      backgroundColors.push(`hsla(${hue}, 70%, 60%, 0.7)`);
+      borderColors.push(`hsla(${hue}, 70%, 50%, 1)`);
+    }
+    
+    // Prepare data for the chart
+    return {
+      labels: limitedTokens.map(token => token.symbol),
+      datasets: [
+        {
+          label: getMetricLabel(metric),
+          data: limitedTokens.map(token => token[metric] as number),
+          backgroundColor: backgroundColors,
+          borderColor: borderColors,
+          borderWidth: 1,
+        },
+      ],
+    };
+  }, [tokens, metric]);
 
   const options = {
     responsive: true,
@@ -71,7 +83,7 @@ export function TokenBarChart({ tokens, metric, darkMode = false }: TokenBarChar
       },
       title: {
         display: true,
-        text: `${getMetricLabel(metric)} - Топ ${tokens.length} токенов`,
+        text: `${getMetricLabel(metric)} - Топ 50 токенов`,
         color: darkMode ? '#fff' : '#333',
         font: {
           size: 16,
@@ -102,6 +114,9 @@ export function TokenBarChart({ tokens, metric, darkMode = false }: TokenBarChar
         },
         ticks: {
           color: darkMode ? '#ccc' : '#666',
+          autoSkip: true,
+          maxRotation: 90,
+          minRotation: 45
         },
       },
     },
@@ -109,7 +124,7 @@ export function TokenBarChart({ tokens, metric, darkMode = false }: TokenBarChar
 
   return (
     <div className="w-full h-80">
-      <Bar options={options} data={data} />
+      <Bar options={options} data={chartData} />
     </div>
   );
 }

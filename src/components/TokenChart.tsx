@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -30,21 +30,31 @@ interface TokenChartProps {
 }
 
 export function TokenChart({ tokens, metric, timeFrame, darkMode = false }: TokenChartProps) {
-  // Filter out tokens that don't have the selected metric
-  const validTokens = tokens.filter(token => token[metric] !== undefined);
-  
-  // Prepare data for the chart
-  const data = {
-    labels: validTokens.map(token => token.symbol),
-    datasets: [
-      {
-        label: getMetricLabel(metric),
-        data: validTokens.map(token => token[metric] as number),
-        borderColor: 'rgb(59, 130, 246)',
-        backgroundColor: 'rgba(59, 130, 246, 0.5)',
-      },
-    ],
-  };
+  // Используем useMemo для кэширования обработанных данных
+  const chartData = useMemo(() => {
+    // Filter out tokens that don't have the selected metric
+    const validTokens = tokens.filter(token => token[metric] !== undefined);
+    
+    // Сортируем токены для лучшего визуального представления
+    const sortedTokens = [...validTokens].sort((a, b) => {
+      const aValue = a[metric] as number || 0;
+      const bValue = b[metric] as number || 0;
+      return bValue - aValue;
+    });
+    
+    // Prepare data for the chart
+    return {
+      labels: sortedTokens.map(token => token.symbol),
+      datasets: [
+        {
+          label: getMetricLabel(metric),
+          data: sortedTokens.map(token => token[metric] as number),
+          borderColor: 'rgb(59, 130, 246)',
+          backgroundColor: 'rgba(59, 130, 246, 0.5)',
+        },
+      ],
+    };
+  }, [tokens, metric]);
 
   const options = {
     responsive: true,
@@ -61,7 +71,7 @@ export function TokenChart({ tokens, metric, timeFrame, darkMode = false }: Toke
       },
       title: {
         display: true,
-        text: `${getMetricLabel(metric)} - Топ ${tokens.length} токенов (${timeFrame})`,
+        text: `${getMetricLabel(metric)} - Все токены (${timeFrame})`,
         color: darkMode ? '#fff' : '#333',
         font: {
           size: 16,
@@ -92,6 +102,16 @@ export function TokenChart({ tokens, metric, timeFrame, darkMode = false }: Toke
         },
         ticks: {
           color: darkMode ? '#ccc' : '#666',
+          // Ограничиваем количество видимых меток на оси X для предотвращения перегрузки
+          callback: function(val: any, index: number) {
+            const labels = chartData.labels as string[];
+            // Показываем каждую 5-ю метку, но не более 20 меток всего
+            const interval = Math.max(1, Math.ceil(labels.length / 20));
+            return index % interval === 0 ? labels[index] : '';
+          },
+          autoSkip: true,
+          maxRotation: 45,
+          minRotation: 45
         },
       },
     },
@@ -99,7 +119,7 @@ export function TokenChart({ tokens, metric, timeFrame, darkMode = false }: Toke
 
   return (
     <div className="w-full h-80">
-      <Line options={options} data={data} />
+      <Line options={options} data={chartData} />
     </div>
   );
 }
