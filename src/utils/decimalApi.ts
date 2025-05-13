@@ -70,12 +70,91 @@ export const calculateMarketCap = (token: Token): number => {
   }
 };
 
+// Основная функция получения токенов с автоматической пагинацией
 export const fetchTokens = async (): Promise<Token[]> => {
   try {
+    console.log('Fetching all tokens with automatic pagination...');
+    
+    // Попытаемся сначала получить первую страницу токенов для определения общего количества
+    const initialTokens = await fetchTokensPage(1, 100);
+    
+    if (!initialTokens || initialTokens.length === 0) {
+      console.log('No tokens returned from the initial request');
+      return [];
+    }
+    
+    // Если количество токенов меньше 100, значит мы уже получили все
+    if (initialTokens.length < 100) {
+      console.log(`Only ${initialTokens.length} tokens exist, returning single page`);
+      
+      // Добавляем расчет market_cap для каждого токена
+      return initialTokens.map(token => ({
+        ...token,
+        market_cap: calculateMarketCap(token)
+      }));
+    }
+    
+    // Иначе предположим, что мы не знаем точное количество токенов
+    // и будем последовательно запрашивать страницы, пока не получим все
+    console.log('More than 100 tokens exist, fetching additional pages...');
+    
+    const allTokens = [...initialTokens];
+    let currentPage = 2;
+    let hasMoreTokens = true;
+    
+    // Продолжаем запрашивать страницы, пока не получим неполную страницу
+    while (hasMoreTokens) {
+      console.log(`Fetching tokens page ${currentPage}...`);
+      const nextPageTokens = await fetchTokensPage(currentPage, 100);
+      
+      if (nextPageTokens && nextPageTokens.length > 0) {
+        allTokens.push(...nextPageTokens);
+        console.log(`Added ${nextPageTokens.length} tokens from page ${currentPage}`);
+        
+        // Если страница неполная, значит это последняя страница
+        if (nextPageTokens.length < 100) {
+          hasMoreTokens = false;
+          console.log('Reached final page of tokens');
+        }
+      } else {
+        // Если вернулся пустой массив, значит больше токенов нет
+        hasMoreTokens = false;
+        console.log('No more tokens returned from API');
+      }
+      
+      currentPage++;
+      
+      // Ограничение на случай бесконечного цикла (можно увеличить при необходимости)
+      if (currentPage > 10) {
+        console.warn('Reached maximum page limit (10), stopping pagination');
+        break;
+      }
+    }
+    
+    console.log(`Successfully fetched a total of ${allTokens.length} tokens`);
+    
+    // Добавляем расчет market_cap для каждого токена
+    const tokensWithMarketCap = allTokens.map(token => ({
+      ...token,
+      market_cap: calculateMarketCap(token)
+    }));
+    
+    return tokensWithMarketCap;
+  } catch (error) {
+    console.error('Error fetching all tokens:', error);
+    throw error;
+  }
+};
+
+// Вспомогательная функция для получения одной страницы токенов
+const fetchTokensPage = async (page: number, pageSize: number): Promise<Token[]> => {
+  try {
+    const offset = (page - 1) * pageSize;
+    
     // Сначала пробуем с новым NodeJS маршрутом
     const endpoints = [
-      '/api/decimal/coins',          // Основной маршрут с преобразованием значений
-      '/api/decimal-server/coins'    // Запасной маршрут
+      `/api/decimal/coins?limit=${pageSize}&offset=${offset}`,          // Основной маршрут с преобразованием значений
+      `/api/decimal-server/coins?limit=${pageSize}&offset=${offset}`    // Запасной маршрут
     ];
     
     let data = null;
@@ -88,23 +167,6 @@ export const fetchTokens = async (): Promise<Token[]> => {
         const response = await axios.get(endpoint);
         data = response.data;
         console.log(`Successfully fetched ${data.length} tokens from ${endpoint}`);
-        
-        // Проверяем, имеют ли токены отладочные поля raw_price и raw_reserve
-        if (data.length > 0 && data[0].raw_price) {
-          console.log('Token data includes debug fields (raw values)');
-          console.log('Sample: ', {
-            symbol: data[0].symbol,
-            price: data[0].price,
-            raw_price: data[0].raw_price,
-            reserve: data[0].reserve,
-            raw_reserve: data[0].raw_reserve,
-            current_supply: data[0].current_supply,
-            raw_current_supply: data[0].raw_current_supply,
-            max_supply: data[0].max_supply,
-            raw_max_supply: data[0].raw_max_supply
-          });
-        }
-        
         break; // Если успешно, прерываем цикл
       } catch (error) {
         console.error(`Error fetching from ${endpoint}:`, error);
@@ -117,28 +179,9 @@ export const fetchTokens = async (): Promise<Token[]> => {
       throw lastError || new Error('All API endpoints failed');
     }
     
-    // Добавляем расчет market_cap для каждого токена
-    const tokensWithMarketCap = data.map((token: Token) => ({
-      ...token,
-      market_cap: calculateMarketCap(token)
-    }));
-    
-    // Проверяем рассчитанные значения капитализации
-    if (tokensWithMarketCap.length > 0) {
-      console.log('Market cap calculation sample:', {
-        symbol: tokensWithMarketCap[0].symbol,
-        price: tokensWithMarketCap[0].price,
-        reserve: tokensWithMarketCap[0].reserve,
-        market_cap: tokensWithMarketCap[0].market_cap,
-        current_supply: tokensWithMarketCap[0].current_supply,
-        max_supply: tokensWithMarketCap[0].max_supply,
-        supply_percentage: tokensWithMarketCap[0].supply_percentage
-      });
-    }
-    
-    return tokensWithMarketCap;
+    return data;
   } catch (error) {
-    console.error('Error fetching tokens:', error);
+    console.error(`Error fetching tokens page ${page}:`, error);
     throw error;
   }
 };

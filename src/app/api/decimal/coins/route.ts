@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     
     // Получаем параметры пагинации из запроса
     const { searchParams } = new URL(request.url);
-    const limit = searchParams.get('limit') || '100'; // Увеличиваем лимит по умолчанию до 100
+    const limit = searchParams.get('limit') || '500'; // Увеличиваем лимит до 500, чтобы получить все токены
     const offset = searchParams.get('offset') || '0';
     
     console.log(`Fetching coins with limit=${limit}, offset=${offset}`);

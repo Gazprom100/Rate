@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   try {
     // Получаем параметры пагинации из запроса
     const { searchParams } = new URL(request.url);
-    const limit = searchParams.get('limit') || '10';  // Значение по умолчанию из документации
+    const limit = searchParams.get('limit') || '500';  // Увеличиваем лимит до 500 токенов
     const offset = searchParams.get('offset') || '0'; // Значение по умолчанию из документации
     
     console.log(`Fetching coins with limit=${limit}, offset=${offset}`);

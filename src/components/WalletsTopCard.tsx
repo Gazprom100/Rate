@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Token } from '@/utils/decimalApi';
 import { TokenModal } from './TokenModal';
 
@@ -7,8 +7,56 @@ interface WalletsTopCardProps {
   darkMode?: boolean;
 }
 
+interface WalletStats {
+  total_unique_wallets: number;
+  active_wallets: number;
+  active_percentage: string;
+  block_range: number;
+  timestamp: string;
+}
+
+interface EvmWalletDistributionStats {
+  hasDelegationData: boolean;
+  activeWallets: number;
+  inactiveWallets: number;
+  activePercentage: number;
+}
+
+interface LegacyWalletDistributionStats {
+  hasDelegationData: boolean;
+  avgDelegationPercentage?: number;
+  estimatedDelegators: number;
+  estimatedHolders: number;
+  estimatedOverlap: number;
+}
+
+type WalletDistributionStats = EvmWalletDistributionStats | LegacyWalletDistributionStats;
+
 export function WalletsTopCard({ tokens, darkMode = false }: WalletsTopCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [evmWalletStats, setEvmWalletStats] = useState<WalletStats | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch EVM wallet statistics
+  useEffect(() => {
+    const fetchEvmWalletStats = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch('/api/decimal/wallets');
+        if (!response.ok) {
+          throw new Error('Failed to fetch wallet statistics');
+        }
+        const data = await response.json();
+        setEvmWalletStats(data);
+      } catch (error) {
+        console.error('Error fetching EVM wallet statistics:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEvmWalletStats();
+  }, []);
 
   // Отбираем токены с данными о количестве кошельков
   const tokensWithWallets = useMemo(() => {
@@ -31,8 +79,12 @@ export function WalletsTopCard({ tokens, darkMode = false }: WalletsTopCardProps
   }, [sortedTokens]);
 
   // Общее количество кошельков в сети (максимальное значение как приблизительная оценка)
-  // Обычно это количество кошельков с DEL (основной токен сети)
+  // Обновлено с использованием данных из EVM если доступны
   const totalWallets = useMemo(() => {
+    if (evmWalletStats && evmWalletStats.total_unique_wallets > 0) {
+      return evmWalletStats.total_unique_wallets;
+    }
+    
     if (tokensWithWallets.length === 0) return 0;
     
     // Находим токен DEL, если он есть
@@ -43,10 +95,23 @@ export function WalletsTopCard({ tokens, darkMode = false }: WalletsTopCardProps
     
     // Иначе берем максимальное значение как приблизительную оценку
     return Math.max(...tokensWithWallets.map(t => t.wallets_count));
-  }, [tokensWithWallets]);
+  }, [tokensWithWallets, evmWalletStats]);
   
   // Оценка распределения делегаторов и держателей
-  const walletDistributionStats = useMemo(() => {
+  const walletDistributionStats = useMemo((): WalletDistributionStats => {
+    // Если есть данные из EVM, используем их
+    if (evmWalletStats) {
+      const activeWallets = parseInt(evmWalletStats.active_wallets.toString());
+      const inactiveWallets = evmWalletStats.total_unique_wallets - activeWallets;
+      
+      return {
+        hasDelegationData: true,
+        activeWallets,
+        inactiveWallets,
+        activePercentage: parseFloat(evmWalletStats.active_percentage)
+      };
+    }
+    
     // Выбираем токены, у которых есть данные о делегировании
     const tokensWithDelegation = topTokens.filter(token => 
       token.delegation_percentage !== undefined && 
@@ -87,7 +152,7 @@ export function WalletsTopCard({ tokens, darkMode = false }: WalletsTopCardProps
       estimatedHolders,
       estimatedOverlap
     };
-  }, [topTokens, totalWallets]);
+  }, [topTokens, totalWallets, evmWalletStats]);
 
   // Форматирование числа с суффиксом для удобочитаемого отображения
   const formatNumber = (num: number) => {
@@ -107,6 +172,16 @@ export function WalletsTopCard({ tokens, darkMode = false }: WalletsTopCardProps
   const formatWalletValue = (value: any) => {
     const numValue = Number(value) || 0;
     return `${formatNumber(numValue)} (${calculatePercentage(numValue).toFixed(1)}%)`;
+  };
+
+  // Type guard to check if we have EVM stats
+  const isEvmStats = (stats: WalletDistributionStats): stats is EvmWalletDistributionStats => {
+    return 'activeWallets' in stats && 'activePercentage' in stats;
+  };
+
+  // Type guard to check if we have legacy stats
+  const isLegacyStats = (stats: WalletDistributionStats): stats is LegacyWalletDistributionStats => {
+    return 'estimatedDelegators' in stats && 'estimatedHolders' in stats;
   };
 
   // Функция для открытия модального окна
@@ -142,9 +217,37 @@ export function WalletsTopCard({ tokens, darkMode = false }: WalletsTopCardProps
           <span className={`ml-2 text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
             уникальных адресов
           </span>
+          {evmWalletStats && (
+            <span className={`ml-2 text-xs ${darkMode ? 'text-blue-400' : 'text-blue-500'}`}>
+              (EVM)
+            </span>
+          )}
         </div>
         
-        {walletDistributionStats.hasDelegationData && (
+        {evmWalletStats && isEvmStats(walletDistributionStats) && (
+          <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} mt-1`}>
+            <div className="flex justify-between items-center">
+              <span>Активные кошельки:</span>
+              <span className="font-medium">
+                {formatNumber(walletDistributionStats.activeWallets)} ({walletDistributionStats.activePercentage.toFixed(1)}%)
+              </span>
+            </div>
+            <div className="flex justify-between items-center mt-0.5">
+              <span>Неактивные кошельки:</span>
+              <span className="font-medium">
+                {formatNumber(walletDistributionStats.inactiveWallets)} ({(100 - walletDistributionStats.activePercentage).toFixed(1)}%)
+              </span>
+            </div>
+            <div className="flex justify-between items-center mt-0.5">
+              <span>Источник данных:</span>
+              <span className="font-medium text-blue-500">
+                EVM API
+              </span>
+            </div>
+          </div>
+        )}
+        
+        {!evmWalletStats && isLegacyStats(walletDistributionStats) && (
           <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} mt-1`}>
             <div className="flex justify-between items-center">
               <span>Держатели балансов:</span>
@@ -164,6 +267,12 @@ export function WalletsTopCard({ tokens, darkMode = false }: WalletsTopCardProps
                 {formatNumber(walletDistributionStats.estimatedOverlap)}
               </span>
             </div>
+          </div>
+        )}
+        
+        {isLoading && (
+          <div className="mt-2 text-xs text-center text-blue-500">
+            Загрузка данных EVM...
           </div>
         )}
       </div>
@@ -207,8 +316,12 @@ export function WalletsTopCard({ tokens, darkMode = false }: WalletsTopCardProps
       <div className={`mt-4 pt-4 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
         <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
           <p>Показано общее количество уникальных адресов, имеющих токен на балансе или в делегировании.</p>
-          <p className="mt-1">Если адрес имеет токен и на балансе, и в делегировании, он учитывается один раз.</p>
-          {walletDistributionStats.hasDelegationData && (
+          {evmWalletStats ? (
+            <p className="mt-1">Данные о количестве активных кошельков получены через Decimal EVM API.</p>
+          ) : (
+            <p className="mt-1">Если адрес имеет токен и на балансе, и в делегировании, он учитывается один раз.</p>
+          )}
+          {!evmWalletStats && isLegacyStats(walletDistributionStats) && (
             <p className="mt-1">Распределение кошельков между держателями и делегаторами - ориентировочная оценка.</p>
           )}
         </div>
