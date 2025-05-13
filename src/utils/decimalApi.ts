@@ -1,5 +1,5 @@
 
-import axios from \"axios\";
+import axios from "axios";
 
 export interface Token {
   id: string;
@@ -23,7 +23,7 @@ export interface Token {
 
 export const convertFromRawValue = (rawValue?: string | number): number => {
   if (!rawValue) return 0;
-  const stringValue = typeof rawValue === \"string\" ? rawValue : rawValue.toString();
+  const stringValue = typeof rawValue === "string" ? rawValue : rawValue.toString();
   
   try {
     if (stringValue.length > 18) {
@@ -38,7 +38,7 @@ export const convertFromRawValue = (rawValue?: string | number): number => {
       return parseFloat(stringValue) / 10**18;
     }
   } catch (e) {
-    console.error(\"Error converting raw blockchain value:\", e);
+    console.error("Error converting raw blockchain value:", e);
     return parseFloat(stringValue) / 10**18;
   }
 };
@@ -111,7 +111,7 @@ const fetchTokensPage = async (page: number, pageSize: number): Promise<Token[]>
     }
     
     if (!data) {
-      throw lastError || new Error(\"All API endpoints failed\");
+      throw lastError || new Error("All API endpoints failed");
     }
     
     return data;
@@ -123,12 +123,12 @@ const fetchTokensPage = async (page: number, pageSize: number): Promise<Token[]>
 
 export const fetchTokens = async (): Promise<Token[]> => {
   try {
-    console.log(\"Fetching all tokens with automatic pagination...\");
+    console.log("Fetching all tokens with automatic pagination...");
     
     const initialTokens = await fetchTokensPage(1, 100);
     
     if (!initialTokens || initialTokens.length === 0) {
-      console.log(\"No tokens returned from the initial request\");
+      console.log("No tokens returned from the initial request");
       return [];
     }
     
@@ -144,7 +144,7 @@ export const fetchTokens = async (): Promise<Token[]> => {
     }
     
     // Иначе продолжаем получать страницы, пока не получим все токены
-    console.log(\"More than 100 tokens exist, fetching additional pages...\");
+    console.log("More than 100 tokens exist, fetching additional pages...");
     
     const allTokens = [...initialTokens];
     let currentPage = 2;
@@ -162,19 +162,19 @@ export const fetchTokens = async (): Promise<Token[]> => {
         // Если страница неполная, значит это последняя страница
         if (nextPageTokens.length < 100) {
           hasMoreTokens = false;
-          console.log(\"Reached final page of tokens\");
+          console.log("Reached final page of tokens");
         }
       } else {
         // Если вернулся пустой массив, больше токенов нет
         hasMoreTokens = false;
-        console.log(\"No more tokens returned from API\");
+        console.log("No more tokens returned from API");
       }
       
       currentPage++;
       
       // Ограничение на случай бесконечного цикла
       if (currentPage > 10) {
-        console.warn(\"Reached maximum page limit (10), stopping pagination\");
+        console.warn("Reached maximum page limit (10), stopping pagination");
         break;
       }
     }
@@ -189,7 +189,7 @@ export const fetchTokens = async (): Promise<Token[]> => {
     
     return tokensWithMarketCap;
   } catch (error) {
-    console.error(\"Error fetching all tokens:\", error);
+    console.error("Error fetching all tokens:", error);
     throw error;
   }
 };
