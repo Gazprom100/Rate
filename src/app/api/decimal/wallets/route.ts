@@ -29,10 +29,22 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Error fetching wallet statistics:', error);
     
-    return NextResponse.json(
-      { error: 'Failed to fetch wallet statistics' },
-      { status: 500 }
-    );
+    // Return fallback data instead of an error
+    // This allows the UI to display something instead of breaking
+    const fallbackData = {
+      total_unique_wallets: 0,
+      active_wallets: 0,
+      active_percentage: "0.00",
+      block_range: 0,
+      timestamp: new Date().toISOString(),
+      is_fallback: true
+    };
+    
+    return NextResponse.json(fallbackData, {
+      headers: {
+        'Cache-Control': 'public, max-age=600' // Cache for 10 minutes
+      }
+    });
   }
 }
 

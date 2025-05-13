@@ -2,11 +2,15 @@ import axios from 'axios';
 import { ethers } from 'ethers';
 
 // EVM provider for Decimal blockchain
-const EVM_RPC_URL = 'https://evm-rpc.decimalchain.com';
+const EVM_RPC_URL = 'https://node.decimalchain.com/web3/';
 
 // Initialize provider
 export const getEvmProvider = () => {
-  return new ethers.JsonRpcProvider(EVM_RPC_URL);
+  return new ethers.JsonRpcProvider(EVM_RPC_URL, undefined, {
+    polling: true,
+    pollingInterval: 4000,
+    cacheTimeout: 10000
+  });
 };
 
 // Get the latest block number
@@ -63,14 +67,31 @@ export const getWalletStatistics = async (blockRange: number = 1000): Promise<{
   walletActivity: { [key: string]: number };
 }> => {
   const provider = getEvmProvider();
-  const latestBlock = await provider.getBlockNumber();
+  let latestBlock;
   
+  try {
+    latestBlock = await provider.getBlockNumber();
+  } catch (error) {
+    console.error("Error getting latest block number:", error);
+    // Return default values if we can't connect
+    return {
+      totalUniqueWallets: 0,
+      activeWallets: 0,
+      walletActivity: {}
+    };
+  }
+  
+  // Use a smaller block range for efficiency and to reduce timeouts
+  const actualBlockRange = Math.min(blockRange, 200);
   // Start from the latest block and go back blockRange blocks
-  const startBlock = Math.max(0, latestBlock - blockRange);
+  const startBlock = Math.max(0, latestBlock - actualBlockRange);
   const uniqueAddresses = new Set<string>();
   const activityCounter: { [key: string]: number } = {};
   
-  for (let i = latestBlock; i > startBlock; i -= 10) { // Sample every 10th block for efficiency
+  // Sample blocks less frequently for larger ranges
+  const step = actualBlockRange > 100 ? 20 : 10;
+  
+  for (let i = latestBlock; i > startBlock; i -= step) {
     try {
       const block = await provider.getBlock(i, true);
       
@@ -94,6 +115,8 @@ export const getWalletStatistics = async (blockRange: number = 1000): Promise<{
       }
     } catch (error) {
       console.error(`Error processing block ${i}:`, error);
+      // Continue processing other blocks
+      continue;
     }
   }
   

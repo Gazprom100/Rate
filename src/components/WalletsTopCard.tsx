@@ -13,6 +13,7 @@ interface WalletStats {
   active_percentage: string;
   block_range: number;
   timestamp: string;
+  is_fallback?: boolean;
 }
 
 interface EvmWalletDistributionStats {
@@ -222,9 +223,14 @@ export function WalletsTopCard({ tokens, darkMode = false }: WalletsTopCardProps
               (EVM)
             </span>
           )}
+          {evmWalletStats?.is_fallback && (
+            <span className={`ml-2 text-xs px-1 py-0.5 rounded ${darkMode ? 'bg-yellow-600 text-yellow-200' : 'bg-yellow-200 text-yellow-800'}`}>
+              данные отсутствуют
+            </span>
+          )}
         </div>
         
-        {evmWalletStats && isEvmStats(walletDistributionStats) && (
+        {evmWalletStats && !evmWalletStats.is_fallback && isEvmStats(walletDistributionStats) && (
           <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} mt-1`}>
             <div className="flex justify-between items-center">
               <span>Активные кошельки:</span>
