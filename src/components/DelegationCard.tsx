@@ -87,29 +87,29 @@ export function DelegationCard({ tokens, darkMode = false }: DelegationCardProps
           {topDelegatedTokens.map((token, index) => (
             <div key={token.id} className="flex items-center justify-between">
               <div className="flex items-center">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 ${
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center mr-3 ${
                   index === 0 ? 'bg-green-100 text-green-700' : 
                   index === 1 ? 'bg-green-50 text-green-600' :
                   index === 2 ? 'bg-emerald-50 text-emerald-600' :
                   'bg-gray-100 text-gray-600'
                 }`}>
-                  <span className="text-xs font-semibold">{rankMap.get(token.symbol)}</span>
+                  <span className="text-xs font-semibold">{index + 1}</span>
                 </div>
-                <span className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  {token.symbol}
-                </span>
-              </div>
-              <div className="w-1/2">
-                <div className="flex items-center">
-                  <div className="w-full bg-gray-200 rounded-full h-2.5 mr-2">
-                    <div 
-                      className="bg-green-600 h-2.5 rounded-full" 
-                      style={{ width: `${Math.min(100, token.delegation_percentage || 0)}%` }}
-                    ></div>
+                <div>
+                  <div className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    {token.symbol}
                   </div>
-                  <span className={`text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                     {(token.delegation_percentage || 0).toFixed(2)}%
-                  </span>
+                  </div>
+                </div>
+              </div>
+              <div className="w-1/3">
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-green-600 h-2 rounded-full" 
+                    style={{ width: `${Math.min(100, token.delegation_percentage || 0)}%` }}
+                  ></div>
                 </div>
               </div>
             </div>

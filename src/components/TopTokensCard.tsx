@@ -38,43 +38,56 @@ export function TopTokensCard({ tokens, darkMode = false }: TopTokensCardProps) 
     return num.toFixed(2);
   };
 
+  // Рассчитываем общую капитализацию
+  const totalMarketCap = useMemo(() => {
+    return tokensWithMarketCap.reduce((sum, token) => sum + (token.market_cap || 0), 0);
+  }, [tokensWithMarketCap]);
+
+  // Рассчитываем процент капитализации
+  const calculatePercentage = (marketCap: number) => {
+    return totalMarketCap > 0 ? (marketCap / totalMarketCap) * 100 : 0;
+  };
+
   return (
     <div className={`bg-${darkMode ? 'gray-800' : 'white'} rounded-lg shadow p-6`}>
-      <h2 className={`text-lg font-semibold mb-6 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-        ТОП-10 по капитализации
-      </h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+          ТОП-10 по капитализации
+        </h2>
+        <div className={`text-xs ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} px-3 py-1 rounded-full`}>
+          {tokensWithMarketCap.length} токенов
+        </div>
+      </div>
       
       <div className="space-y-5 max-h-[500px] overflow-y-auto pr-1">
         {topTokens.map((token, index) => (
-          <div key={token.id} className="flex items-start">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${
-              index === 0 ? 'bg-yellow-100 text-yellow-800' : 
-              index === 1 ? 'bg-gray-100 text-gray-800' :
-              index === 2 ? 'bg-amber-50 text-amber-800' :
-              'bg-blue-50 text-blue-800'
-            }`}>
-              <span className="text-sm font-semibold">{index + 1}</span>
+          <div key={token.id} className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center mr-3 ${
+                index === 0 ? 'bg-yellow-100 text-yellow-800' : 
+                index === 1 ? 'bg-gray-100 text-gray-800' :
+                index === 2 ? 'bg-amber-50 text-amber-800' :
+                'bg-blue-50 text-blue-800'
+              }`}>
+                <span className="text-xs font-semibold">{index + 1}</span>
+              </div>
+              
+              <div>
+                <div className={`text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {token.symbol.toLowerCase()}
+                </div>
+                <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  {token.name}
+                </div>
+              </div>
             </div>
             
-            <div className="flex-1">
-              <div className="flex justify-between items-center">
-                <div>
-                  <div className={`text-base font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                    {token.symbol.toLowerCase()}
-                  </div>
-                  <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    {token.name}
-                  </div>
-                </div>
-                
-                <div className="text-right">
-                  <div className={`text-base font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                    {formatNumber(token.market_cap || 0)} DEL
-                  </div>
-                  <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    {token.price.toFixed(8)} DEL
-                  </div>
-                </div>
+            <div className="text-right">
+              <div className={`text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                {formatNumber(token.market_cap || 0)} DEL
+              </div>
+              <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                {calculatePercentage(token.market_cap || 0).toFixed(1)}%
               </div>
             </div>
           </div>

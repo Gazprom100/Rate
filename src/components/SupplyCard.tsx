@@ -101,35 +101,34 @@ export function SupplyCard({ tokens, darkMode = false }: SupplyCardProps) {
         </div>
         <div className="space-y-4 max-h-[450px] overflow-y-auto pr-1">
           {topSupplyTokens.map((token, index) => (
-            <div key={token.id} className="flex flex-col">
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 ${
-                    index === 0 ? 'bg-blue-100 text-blue-700' : 
-                    index === 1 ? 'bg-blue-50 text-blue-600' :
-                    index === 2 ? 'bg-indigo-50 text-indigo-600' :
-                    'bg-gray-100 text-gray-600'
-                  }`}>
-                    <span className="text-xs font-semibold">{rankMap.get(token.symbol)}</span>
-                  </div>
-                  <span className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                    {token.symbol}
-                  </span>
+            <div key={token.id} className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center mr-3 ${
+                  index === 0 ? 'bg-blue-100 text-blue-700' : 
+                  index === 1 ? 'bg-blue-50 text-blue-600' :
+                  index === 2 ? 'bg-indigo-50 text-indigo-600' :
+                  'bg-gray-100 text-gray-600'
+                }`}>
+                  <span className="text-xs font-semibold">{index + 1}</span>
                 </div>
-                <span className={`text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  {token.supply_percentage.toFixed(2)}%
-                </span>
+                <div>
+                  <div className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    {token.symbol}
+                  </div>
+                  <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    {formatNumber(token.current_supply || 0)} / {formatNumber(token.max_supply || 0)}
+                  </div>
+                </div>
               </div>
-              
-              <div className="flex flex-col w-full">
-                <div className="w-full bg-gray-200 rounded-full h-2.5 mb-1">
+              <div className="w-1/3">
+                <div className="w-full bg-gray-200 rounded-full h-2">
                   <div 
-                    className="bg-blue-600 h-2.5 rounded-full" 
+                    className="bg-blue-600 h-2 rounded-full" 
                     style={{ width: `${Math.min(100, token.supply_percentage)}%` }}
                   ></div>
                 </div>
-                <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {formatNumber(token.current_supply || 0)} / {formatNumber(token.max_supply || 0)}
+                <div className={`text-xs text-right mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  {token.supply_percentage.toFixed(2)}%
                 </div>
               </div>
             </div>

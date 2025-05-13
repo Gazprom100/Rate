@@ -249,13 +249,17 @@ export default function Home() {
             darkMode={darkMode}
           />
           <TopTokensCard 
-            tokens={topTokensByMarketCap} 
+            tokens={tokens} 
             darkMode={darkMode}
           />
         </div>
 
         {/* Дополнительные карточки */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <ReservesCard 
+            tokens={tokens}
+            darkMode={darkMode}
+          />
           <WalletsTopCard
             tokens={tokens}
             darkMode={darkMode}
