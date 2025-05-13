@@ -50,9 +50,14 @@ export function TokenModal({
         onClick={e => e.stopPropagation()}
       >
         <div className="flex justify-between items-center p-6 border-b border-gray-200">
-          <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-            {title}
-          </h2>
+          <div>
+            <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+              {title}
+            </h2>
+            <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              {tokens.length} токенов блокчейна
+            </p>
+          </div>
           <button 
             onClick={onClose}
             className={`text-2xl ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-black'}`}
