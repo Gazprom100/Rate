@@ -6,9 +6,16 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "indexer": "ts-node src/scripts/run-indexer.ts",
+    "indexer:supabase": "ts-node src/scripts/run-indexer-supabase.ts",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "supabase:migrations": "supabase migration up"
   },
   "dependencies": {
+    "@prisma/client": "^6.7.0",
     "@supabase/supabase-js": "^2.39.0",
     "autoprefixer": "^10.4.21",
     "axios": "^1.6.0",
@@ -28,6 +35,9 @@
     "@types/react-dom": "^18.2.0",
     "eslint": "^8.0.0",
     "eslint-config-next": "14.0.0",
+    "prisma": "^6.7.0",
+    "supabase": "^1.112.0",
+    "ts-node": "^10.9.1",
     "typescript": "^5.0.0"
   },
   "engines": {

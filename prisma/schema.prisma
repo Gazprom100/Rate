@@ -1,0 +1,121 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Состояние индексатора для отслеживания прогресса
+model IndexerState {
+  chainId             String   @id
+  lastProcessedBlock  Int      @default(0)
+  lastUpdateTimestamp DateTime @default(now())
+}
+
+// Статистика блокчейна
+model ChainStats {
+  chainId             String   @id
+  totalWallets        Int      @default(0)
+  activeWallets       Int      @default(0) // Активные за последний период
+  delegatingWallets   Int?     // Кошельки, которые делегируют
+  lastUpdateTimestamp DateTime @default(now())
+
+  // Дополнительная статистика
+  totalTransactions   Int?
+  averageTxPerDay     Float?
+  lastDayTransactions Int?
+}
+
+// Кошельки, обнаруженные в блокчейне
+model Wallet {
+  address     String
+  chainId     String
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+  balance     String?  // Баланс в виде строки, учитывая большие числа
+  
+  // Дополнительные метрики
+  txCount     Int      @default(0)
+  isActive    Boolean  @default(true)
+  
+  // Данные о первой транзакции пополнения
+  firstFundingTx        String?  // Хэш первой транзакции, пополнившей кошелек
+  firstFundingBlock     Int?     // Номер блока первой транзакции пополнения
+  firstFundingFrom      String?  // Адрес, который первым отправил средства
+  firstFundingTimestamp DateTime? // Время первой транзакции пополнения
+  firstFundingAmount    String?  // Сумма первого пополнения
+  
+  // Связи для графа кошельков
+  fundedBy              Wallet?  @relation("WalletOrigin", fields: [fundedByAddress, fundedByChainId], references: [address, chainId])
+  fundedByAddress       String?
+  fundedByChainId       String?
+  
+  // Кошельки, которые этот кошелек пополнил первым
+  fundedWallets         Wallet[] @relation("WalletOrigin")
+  
+  // Связи с токенами
+  tokenBalances TokenBalance[]
+
+  @@id([address, chainId])
+  @@index([chainId, isActive])
+  @@index([fundedByAddress, fundedByChainId])
+}
+
+// Токены в сети
+model Token {
+  id          String   @id
+  chainId     String
+  symbol      String
+  name        String
+  decimals    Int      @default(18)
+  totalSupply String   // Строка для больших чисел
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Метрики токена
+  holders     Int      @default(0)
+  price       Float?
+  
+  // Связи с кошельками
+  walletBalances TokenBalance[]
+
+  @@index([chainId, symbol])
+}
+
+// Балансы токенов для кошельков
+model TokenBalance {
+  wallet       Wallet  @relation(fields: [walletAddress, walletChainId], references: [address, chainId])
+  walletAddress String
+  walletChainId String
+  
+  token        Token   @relation(fields: [tokenId], references: [id])
+  tokenId      String
+  
+  balance      String  // Баланс в виде строки для учета больших чисел
+  updatedAt    DateTime @updatedAt
+
+  @@id([walletAddress, walletChainId, tokenId])
+  @@index([tokenId])
+}
+
+// Отдельная таблица для хранения первых транзакций для быстрой аналитики и доступа
+model FirstFunding {
+  id             Int      @id @default(autoincrement())
+  fromAddress    String
+  fromChainId    String
+  toAddress      String
+  toChainId      String
+  blockNumber    Int
+  txHash         String
+  amount         String
+  timestamp      DateTime
+  
+  @@unique([toAddress, toChainId])
+  @@index([fromAddress, fromChainId])
+  @@index([blockNumber])
+}
